@@ -38,5 +38,10 @@ public class PlayerConsole : Editor
             }
             EditorGUILayout.EndHorizontal();
         }
+
+        if (GUILayout.Button("Quick Start"))
+        {
+            main.QuickStart();
+        }
     }
 }

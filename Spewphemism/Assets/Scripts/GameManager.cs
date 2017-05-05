@@ -20,8 +20,11 @@ public class GameManager : MonoBehaviour
 
     List<PlayerInfo> m_playerList;
     List<TargetData> m_targets;
+    List<string> m_usedTargets = new List<string>();
 
-    State m_state = State.Intro;
+    State m_state = State.Login;
+    TargetData m_currentTarget;
+    int m_guesserIndex = 0;
 
     void Start()
 	{
@@ -41,10 +44,30 @@ public class GameManager : MonoBehaviour
             case State.Login:
                 if (eventCode == SpewEventCode.StartGame)
                 {
-                    SetState(State.Clues);
+                    StartGame();
                 }
                 break;
         }
+    }
+
+    void StartGame()
+    {
+        if (m_usedTargets.Count == m_targets.Count)
+        {
+            m_usedTargets.Clear();
+        }
+
+        m_guesserIndex = 0;
+        
+        for (int i = 0; i < m_playerList.Count; ++i)
+        {
+            int index = Random.Range(0, m_playerList.Count);
+            var temp = m_playerList[i];
+            m_playerList[i] = m_playerList[index];
+            m_playerList[index] = temp;
+        }
+
+        SetState(State.Clues);
     }
 
     void SetState(State state)
@@ -53,7 +76,15 @@ public class GameManager : MonoBehaviour
         switch (state)
         {
             case State.Clues:
+                do
+                {
+                    int index = Random.Range(0, m_targets.Count);
+                    m_currentTarget = m_targets[index];
+                } while (m_usedTargets.Contains(m_currentTarget.id));
 
+                string guesser = m_playerList[m_guesserIndex].Name;
+                string content = m_currentTarget.name + "," + m_currentTarget.category + "," + guesser;
+                Main.RaiseEvent(SpewEventCode.SendTarget, content);
                 break;
         }
     }

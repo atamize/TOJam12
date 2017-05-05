@@ -7,13 +7,17 @@ using UnityEngine.UI;
 
 public enum SpewEventCode
 {
+    // Incoming events
     JoinRoom             = 0,
     StartGame            = 2,
     SubmitClue           = 3,
     SubmitGuess          = 4,
     BooPlayer            = 5,
     RestartGame          = 6,
-    NewPlayers           = 7
+    NewPlayers           = 7,
+
+    // Outgoing events
+    SendTarget           = 8
 }
 
 
@@ -214,7 +218,12 @@ public class Main : PunBehaviour
 #endif
         PlayerInfo player = GetPlayerInfoById(senderId);
         
-        gameManager.ReceiveEvent((SpewEventCode)eventCode, content.ToString(), player);
+        if (eventCode == (byte)SpewEventCode.StartGame)
+        {
+            gameManager.StartGame(playerList, targets);
+        }
+
+        gameManager.ReceiveEvent((SpewEventCode)eventCode, (content == null) ? string.Empty : content.ToString(), player);
 
         //Hashtable hashTable = content as Hashtable;
         //string msg = hashTable["message"] as string;
@@ -228,7 +237,8 @@ public class Main : PunBehaviour
         {
             options.TargetActors = new int[] { receiverId };
         }
-            
+
+        Debug.Log("Raise event " + eventCode.ToString() + ": " + content);
         PhotonNetwork.RaiseEvent((byte)eventCode, content, true, options);
     }
 
@@ -250,6 +260,14 @@ public class Main : PunBehaviour
         {
             OnEvent((byte)eventCode, content, senderId);
         }
+    }
+
+    public void QuickStart()
+    {
+        OnPhotonPlayerConnected(new PhotonPlayer(false, 1, "Player1"));
+        OnPhotonPlayerConnected(new PhotonPlayer(false, 1, "Player2"));
+        OnPhotonPlayerConnected(new PhotonPlayer(false, 1, "Player3"));
+        OnEvent((byte)SpewEventCode.StartGame, "", 1);
     }
 #endif
 }
