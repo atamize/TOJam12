@@ -39,7 +39,7 @@ var DemoLoadBalancing = (function (_super) {
                 this.connect();
             }
             else {
-                this.connectToRegionMaster("EU");
+                this.connectToRegionMaster("US");
             }
         }
     };

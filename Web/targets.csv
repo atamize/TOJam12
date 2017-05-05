@@ -1,0 +1,3 @@
+Id,Target,Category,AcceptedResponses,DisallowedWords,DisallowedRegex,MaxCharacters
+firefighter,Firefighter,Occupation,fire fighter|fireman|fire man|firewoman|fireperson,fire|fight,,
+arnold,Arnold Schwarzenegger,Actor,arnold s.*w.*r.*z.*n.*g.*r)|(s.*w.*r.*z.*n.*g.*r),terminator,t.*rm.*n.*[t|d].*r,

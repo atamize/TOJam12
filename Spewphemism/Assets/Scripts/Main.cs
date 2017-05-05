@@ -26,13 +26,52 @@ public class Main : PunBehaviour
     private const string ALPHA = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     const int ROOM_CODE_LENGTH = 4;
     const int MAX_PLAYERS_IN_ROOM = 6;
+    const int MAX_CLUE_CHARACTERS = 20;
 
     List<PlayerInfo> playerList = new List<PlayerInfo>();
+    List<TargetData> targets = new List<TargetData>();
 
     void Start()
 	{
         ApplyUserIdAndConnect();
+        StartCoroutine(LoadTargets());
 	}
+
+    private IEnumerator LoadTargets()
+    {
+        WWW w = new WWW("http://www.baconshark.ca/data/targets.csv");
+        yield return w;
+        if (w.error != null)
+        {
+            Debug.Log("Error .. " + w.error);
+            // for example, often 'Error .. 404 Not Found'
+        }
+        else
+        {
+            Debug.Log("Successfully loaded targets");
+            string longStringFromFile = w.text;
+            List<string> lines = new List<string>(
+                longStringFromFile
+                .Split(new string[] { "\r", "\n" },
+                System.StringSplitOptions.RemoveEmptyEntries));
+            // remove comment lines...
+            for (int i = 1; i < lines.Count; ++i)
+            {
+                string[] split = lines[i].Split(',');
+                TargetData data = new TargetData();
+                data.id = split[0];
+                data.name = split[1];
+                data.category = split[2];
+                data.responses = split[3];
+                data.disallowedWords = split[4];
+                data.disallowedRegex = split[5];
+
+                string maxCharacters = split[6];
+                data.maxCharacters = string.IsNullOrEmpty(maxCharacters) ? MAX_CLUE_CHARACTERS : int.Parse(maxCharacters);
+                targets.Add(data);
+            }
+        }
+    }
 
     public void ApplyUserIdAndConnect()
     {
