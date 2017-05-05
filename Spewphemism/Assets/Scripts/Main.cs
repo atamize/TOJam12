@@ -8,9 +8,12 @@ using UnityEngine.UI;
 public enum SpewEventCode
 {
     JoinRoom             = 0,
-    SubmitAcro           = 2,
-    InvalidAcroResult    = 3,
-    Vote                 = 4
+    StartGame            = 2,
+    SubmitClue           = 3,
+    SubmitGuess          = 4,
+    BooPlayer            = 5,
+    RestartGame          = 6,
+    NewPlayers           = 7
 }
 
 
@@ -196,6 +199,19 @@ public class Main : PunBehaviour
         Debug.Log("Event code: " + eventCode + ", senderId: " + senderId);
         Debug.Log("content: " + content);
 
+#if UNITY_EDITOR
+        if (eventCode == (byte)SpewEventCode.JoinRoom)
+        {
+            PhotonPlayer p = new PhotonPlayer(false, senderId, content.ToString());
+            var info = new PlayerInfo(p);
+            playerEntries[playerList.Count].SetInfo(info);
+            playerEntries[playerList.Count].Show(true);
+            playerList.Add(info);
+
+            Debug.Log("New player joined: " + p.NickName);
+            return;
+        }
+#endif
         PlayerInfo player = GetPlayerInfoById(senderId);
         
         gameManager.ReceiveEvent((SpewEventCode)eventCode, content.ToString(), player);
@@ -220,7 +236,7 @@ public class Main : PunBehaviour
     {
         //string content = "fuckyou,shitbrain";
         //PhotonNetwork.RaiseEvent(1, content, true, RaiseEventOptions.Default);
-        gameManager.StartGame(playerList);
+        gameManager.StartGame(playerList, targets);
     }
 
 #if UNITY_EDITOR

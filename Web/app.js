@@ -17,6 +17,9 @@ var DemoAppVersion = this["AppInfo"] && this["AppInfo"]["AppVersion"] ? this["Ap
 var DemoMasterServer = this["AppInfo"] && this["AppInfo"]["MasterServer"];
 var DemoFbAppId = this["AppInfo"] && this["AppInfo"]["FbAppId"];
 var ConnectOnStart = false;
+
+var LatestRoom;
+
 var DemoLoadBalancing = (function (_super) {
     __extends(DemoLoadBalancing, _super);
     function DemoLoadBalancing() {
@@ -62,11 +65,13 @@ var DemoLoadBalancing = (function (_super) {
     };
     DemoLoadBalancing.prototype.onStateChange = function (state) {
         // "namespace" import for static members shorter acceess
+        /*
         var LBC = Photon.LoadBalancing.LoadBalancingClient;
         var stateText = document.getElementById("statetxt");
         stateText.textContent = LBC.StateToName(state);
         this.updateRoomButtons();
         this.updateRoomInfo();
+        */
     };
     DemoLoadBalancing.prototype.objToStr = function (x) {
         var res = "";
@@ -76,6 +81,7 @@ var DemoLoadBalancing = (function (_super) {
         return res;
     };
     DemoLoadBalancing.prototype.updateRoomInfo = function () {
+        /*
         var stateText = document.getElementById("roominfo");
         stateText.innerHTML = "room: " + this.myRoom().name + " [" + this.objToStr(this.myRoom()._customProperties) + "]";
         stateText.innerHTML = stateText.innerHTML + "<br>";
@@ -87,6 +93,7 @@ var DemoLoadBalancing = (function (_super) {
             stateText.innerHTML = stateText.innerHTML + "<br>";
         }
         this.updateRoomButtons();
+        */
     };
     DemoLoadBalancing.prototype.onActorPropertiesChange = function (actor) {
         this.updateRoomInfo();
@@ -101,6 +108,14 @@ var DemoLoadBalancing = (function (_super) {
         this.updateRoomButtons(); // join btn state can be changed
     };
     DemoLoadBalancing.prototype.onRoomList = function (rooms) {
+        if (rooms.length > 0) {
+            LatestRoom = rooms[0].name;
+
+            var menu = document.getElementById("roomCode");
+            menu.value = LatestRoom;
+        }
+        
+        /*
         var menu = document.getElementById("gamelist");
         while (menu.firstChild) {
             menu.removeChild(menu.firstChild);
@@ -117,6 +132,7 @@ var DemoLoadBalancing = (function (_super) {
             }
         }
         menu.selectedIndex = selectedIndex;
+        */
         this.output("Demo: Rooms total: " + rooms.length);
         this.updateRoomButtons();
     };
@@ -144,9 +160,32 @@ var DemoLoadBalancing = (function (_super) {
     DemoLoadBalancing.prototype.setupUI = function () {
         var _this = this;
         this.logger.info("Setting up UI.");
-        var input = document.getElementById("input");
-        input.value = 'hello';
+        var input = document.getElementById("name");
+        input.value = 'Rando';
         input.focus();
+
+        var form = document.getElementById("mainfrm");
+        form.onsubmit = function () {
+            if (_this.isInLobby()) {
+                _this.myActor().setName(input.value);
+
+                var roomCode = document.getElementById("roomCode");
+                if (roomCode.value.length > 0) {
+                    _this.joinRoom(roomCode.value);
+
+                    //_this.sendMessage(input.value);
+                    _this.output("Enter a valid room code");
+                } else {
+                    roomCode.focus();
+                }
+                
+            }
+            else {
+                _this.output("Reload page to connect to Master");
+            }
+            return false;
+        };
+        /*
         var btnJoin = document.getElementById("joingamebtn");
         btnJoin.onclick = function (ev) {
             if (_this.isInLobby()) {
@@ -214,8 +253,12 @@ var DemoLoadBalancing = (function (_super) {
             _this.sendMessage("... changed his / her color!");
         };
         this.updateRoomButtons();
+        */
     };
     DemoLoadBalancing.prototype.output = function (str, color) {
+        var log = document.getElementById("status");
+        log.innerHTML = str;
+        /*
         var log = document.getElementById("theDialogue");
         var escaped = str.replace(/&/, "&amp;").replace(/</, "&lt;").
             replace(/>/, "&gt;").replace(/"/, "&quot;");
@@ -224,8 +267,10 @@ var DemoLoadBalancing = (function (_super) {
         }
         log.innerHTML = log.innerHTML + escaped + "<br>";
         log.scrollTop = log.scrollHeight;
+        */
     };
     DemoLoadBalancing.prototype.updateRoomButtons = function () {
+        /*
         var btn;
         btn = document.getElementById("newgamebtn");
         btn.disabled = !(this.isInLobby() && !this.isJoinedToRoom());
@@ -236,6 +281,7 @@ var DemoLoadBalancing = (function (_super) {
         btn.disabled = !canJoin;
         btn = document.getElementById("leavebtn");
         btn.disabled = !(this.isJoinedToRoom());
+        */
     };
     return DemoLoadBalancing;
 }(Photon.LoadBalancing.LoadBalancingClient));
