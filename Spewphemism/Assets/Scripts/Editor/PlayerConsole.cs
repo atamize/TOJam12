@@ -42,6 +42,7 @@ public class PlayerConsole : Editor
         if (GUILayout.Button("Quick Start"))
         {
             main.QuickStart();
+            eventCode = SpewEventCode.SubmitClue;
         }
     }
 }

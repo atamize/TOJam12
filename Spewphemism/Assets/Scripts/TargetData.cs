@@ -14,10 +14,19 @@ public class TargetData
     public string disallowedRegex;
     public int maxCharacters;
 
+    string responsePattern;
     string regexPattern;
 
     public void SetPattern()
     {
+        // Response pattern
+        StringBuilder resp = new StringBuilder();
+        resp.Append(name.ToLower());
+        resp.Append("|");
+        resp.Append(responses.ToLower());
+        responsePattern = resp.ToString();
+
+        // Disallowed pattern
         StringBuilder sb = new StringBuilder();
         string norm = name.ToLower();
         sb.Append(norm);
@@ -52,5 +61,12 @@ public class TargetData
         bool result = Regex.IsMatch(clue, regexPattern);
 
         return !result;
+    }
+
+    public bool IsGuessValid(string guess)
+    {
+        Debug.Log("Checking guess " + guess + " against pattern: " + responsePattern);
+        bool result = Regex.IsMatch(guess, responsePattern);
+        return result;
     }
 }

@@ -19,7 +19,9 @@ public enum SpewEventCode
     // Outgoing events
     SendTarget           = 8,
     InvalidClue          = 9,
-    ValidClue            = 10
+    ValidClue            = 10,
+    NextClue             = 11,
+    Tally                = 12
 }
 
 
@@ -266,9 +268,9 @@ public class Main : PunBehaviour
 
     public void QuickStart()
     {
-        OnPhotonPlayerConnected(new PhotonPlayer(false, 1, "Player1"));
-        OnPhotonPlayerConnected(new PhotonPlayer(false, 2, "Player2"));
-        OnPhotonPlayerConnected(new PhotonPlayer(false, 3, "Player3"));
+        OnPhotonPlayerConnected(new PhotonPlayer(false, 1, "PLAYER1"));
+        OnPhotonPlayerConnected(new PhotonPlayer(false, 2, "PLAYER2"));
+        OnPhotonPlayerConnected(new PhotonPlayer(false, 3, "PLAYER3"));
         OnEvent((byte)SpewEventCode.StartGame, "", 1);
     }
 #endif
