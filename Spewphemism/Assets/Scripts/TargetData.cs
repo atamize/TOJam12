@@ -22,8 +22,13 @@ public class TargetData
         // Response pattern
         StringBuilder resp = new StringBuilder();
         resp.Append(name.ToLower());
-        resp.Append("|");
-        resp.Append(responses.ToLower());
+
+        if (!string.IsNullOrEmpty(responses))
+        {
+            resp.Append("|");
+            resp.Append(responses.ToLower());
+        }
+
         responsePattern = resp.ToString();
 
         // Disallowed pattern
@@ -62,11 +67,15 @@ public class TargetData
 
         return !result;
     }
-
     public bool IsGuessValid(string guess)
     {
         Debug.Log("Checking guess " + guess + " against pattern: " + responsePattern);
         bool result = Regex.IsMatch(guess, responsePattern);
         return result;
+    }
+
+    public string FormatDisallowedWords()
+    {
+        return disallowedWords.Replace("|", ", ");
     }
 }

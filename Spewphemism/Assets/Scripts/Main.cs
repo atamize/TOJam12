@@ -21,7 +21,8 @@ public enum SpewEventCode
     InvalidClue          = 9,
     ValidClue            = 10,
     NextClue             = 11,
-    Tally                = 12
+    Tally                = 12,
+    UpdateWords          = 13
 }
 
 
