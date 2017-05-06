@@ -30,6 +30,8 @@ public class Main : PunBehaviour
 {
     public string UserId;
     public string previousRoom;
+    public string targetsURL = "http://www.baconshark.ca/data/targets.csv";
+    public TextAsset targetsCSV;
 
     public PlayerEntry[] playerEntries;
     public GameManager gameManager;
@@ -46,12 +48,26 @@ public class Main : PunBehaviour
     void Start()
 	{
         ApplyUserIdAndConnect();
-        StartCoroutine(LoadTargets());
+        InitializeTargets(targetsCSV.text);
+        //StartCoroutine(LoadTargets());
 	}
+
+    public static string URLAntiCacheRandomizer(string url)
+    {
+        string r = "";
+        r += UnityEngine.Random.Range(
+                      1000000, 8000000).ToString();
+        r += UnityEngine.Random.Range(
+                      1000000, 8000000).ToString();
+        string result = url + "?p=" + r;
+        return result;
+    }
 
     private IEnumerator LoadTargets()
     {
-        WWW w = new WWW("http://www.baconshark.ca/data/targets.csv");
+        string url = URLAntiCacheRandomizer(targetsURL);
+        Debug.Log("Loading url: " + url);
+        WWW w = new WWW(url);
         yield return w;
         if (w.error != null)
         {
@@ -61,27 +77,31 @@ public class Main : PunBehaviour
         else
         {
             Debug.Log("Successfully loaded targets");
-            string longStringFromFile = w.text;
-            List<string> lines = new List<string>(
-                longStringFromFile
-                .Split(new string[] { "\r", "\n" },
-                System.StringSplitOptions.RemoveEmptyEntries));
-            // remove comment lines...
-            for (int i = 1; i < lines.Count; ++i)
-            {
-                string[] split = lines[i].Split(',');
-                TargetData data = new TargetData();
-                data.id = split[0];
-                data.name = split[1];
-                data.category = split[2];
-                data.responses = split[3];
-                data.disallowedWords = split[4];
-                data.disallowedRegex = split[5];
+            InitializeTargets(w.text);
+        }
+    }
 
-                string maxCharacters = split[6];
-                data.maxCharacters = string.IsNullOrEmpty(maxCharacters) ? MAX_CLUE_CHARACTERS : int.Parse(maxCharacters);
-                targets.Add(data);
-            }
+    void InitializeTargets(string longStringFromFile)
+    {
+        List<string> lines = new List<string>(
+                   longStringFromFile
+                   .Split(new string[] { "\r", "\n" },
+                   System.StringSplitOptions.RemoveEmptyEntries));
+        // remove comment lines...
+        for (int i = 1; i < lines.Count; ++i)
+        {
+            string[] split = lines[i].Split(',');
+            TargetData data = new TargetData();
+            data.id = split[0];
+            data.name = split[1];
+            data.category = split[2];
+            data.responses = split[3];
+            data.disallowedWords = split[4];
+            data.disallowedRegex = split[5];
+
+            string maxCharacters = split[6];
+            data.maxCharacters = string.IsNullOrEmpty(maxCharacters) ? MAX_CLUE_CHARACTERS : int.Parse(maxCharacters);
+            targets.Add(data);
         }
     }
 

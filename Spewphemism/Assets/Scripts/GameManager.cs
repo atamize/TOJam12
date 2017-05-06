@@ -11,6 +11,7 @@ public class GameManager : MonoBehaviour
 {
     const int CLUE_TIME = 60;
     const int GUESS_TIME = 30;
+    const int TALLY_TIME = 20;
 
     List<string> IGNORE_WORDS = new List<string>
     {
@@ -36,6 +37,8 @@ public class GameManager : MonoBehaviour
     public GameObject loginState;
     public GameObject clueState;
     public GameObject guessState;
+    public GameObject tallyState;
+    public GameObject finalState;
     public GameObject playerEntries;
 
     public GameObject timerObject;
@@ -47,6 +50,8 @@ public class GameManager : MonoBehaviour
     public TextMeshProUGUI clueLabel;
     public TextMeshProUGUI guesserLabel;
     public TextMeshProUGUI guessLabel;
+
+    public TextMeshProUGUI winnerLabel;
 
     public GameObject incorrectObject;
     public GameObject correctObject;
@@ -137,11 +142,20 @@ public class GameManager : MonoBehaviour
             case State.Guess:
                 EnterGuess();
                 break;
+
+            case State.Tally:
+                EnterTally();
+                break;
+
+            case State.Final:
+                EnterFinal();
+                break;
         }
     }
 
     void EnterClues()
     {
+        tallyState.SetActive(false);
         loginState.SetActive(false);
         clueState.SetActive(true);
         m_clues.Clear();
@@ -178,7 +192,7 @@ public class GameManager : MonoBehaviour
         for (int i = 0; i < seconds; ++i)
         {
             System.TimeSpan ts = System.TimeSpan.FromSeconds(seconds - i);
-            timerLabel.text = string.Format("{0}:{1}", ts.Minutes, ts.Seconds);
+            timerLabel.text = string.Format("{0}:{1:00}", ts.Minutes, ts.Seconds);
             yield return new WaitForSeconds(1);
         }
 
@@ -276,6 +290,10 @@ public class GameManager : MonoBehaviour
         {
             Clue clue = m_clues[m_clueIndex];
             clueGiverLabel.text = string.Format("{0} CLUE:", Possessify(clue.player.Name));
+
+            if (string.IsNullOrEmpty(clue.clue))
+                clue.clue = "??????";
+
             clueLabel.text = clue.clue.ToUpper();
 
             guesserLabel.text = string.Format("{0} GUESS:", Possessify(m_playerList[m_guesserIndex].Name));
@@ -361,8 +379,10 @@ public class GameManager : MonoBehaviour
 
     void EnterTally()
     {
+        tallyState.SetActive(true);
+        guessState.SetActive(false);
+
         int i = 0;
-        int correctScore = 0;
 
         for (i = 0; i < m_playerList.Count; ++i)
         {
@@ -370,7 +390,7 @@ public class GameManager : MonoBehaviour
 
             if (i == m_guesserIndex)
             {
-                correctScore = 100 * (m_clues.Count - m_clueIndex);
+                int correctScore = 200 * (m_clues.Count - m_clueIndex);
                 m_playerList[i].RoundScore = correctScore;
                 string clue = (m_clueIndex < m_clues.Count) ? "(Guessed correctly)" : "(FAILED TO GUESS CORRECTLY)";
                 score.SetScore(m_playerList[i], clue);
@@ -382,7 +402,7 @@ public class GameManager : MonoBehaviour
                 {
                     if (m_clues[m_clueIndex].player.Id == m_playerList[i].Id)
                     {
-                        roundScore = correctScore;
+                        roundScore = 200 * (m_clues.Count - m_clueIndex);
                     }
                     else
                     {
@@ -390,13 +410,14 @@ public class GameManager : MonoBehaviour
                         {
                             if (m_clues[j].player.Id == m_playerList[i].Id)
                             {
-                                roundScore = 100 * (m_clues.Count - m_clueIndex);
+                                roundScore = 100 * (m_clues.Count - j);
                                 break;
                             }
                         }
                     }
                 }
-                
+
+                m_playerList[i].RoundScore = roundScore;
                 var clue = m_clues.Single(c => c.player.Id == m_playerList[i].Id);
                 score.SetScore(m_playerList[i], clue.clue);
             }
@@ -408,6 +429,36 @@ public class GameManager : MonoBehaviour
         {
             playerScores[i].gameObject.SetActive(false);
         }
+
+        StartCoroutine(TimerRoutine(TALLY_TIME, () => {
+            if (m_guesserIndex < m_playerList.Count - 1)
+            {
+                m_guesserIndex++;
+                SetState(State.Clues);
+            }
+            else
+            {
+                SetState(State.Final);
+            }
+        }));
+    }
+
+    void EnterFinal()
+    {
+        tallyState.SetActive(false);
+        timerObject.SetActive(false);
+
+        var sorted = m_playerList.OrderByDescending(p => p.TotalScore);
+        if (sorted.First().TotalScore > sorted.ElementAt(1).TotalScore)
+        {
+            winnerLabel.text = sorted.First().Name;
+        }
+        else
+        {
+            winnerLabel.text = "YOU";
+        }
+
+        finalState.SetActive(true);
     }
 }
 
