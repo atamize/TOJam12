@@ -3,7 +3,7 @@
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
 <head>
     <meta charset="utf-8" />
-    <title>TypeScript HTML App</title>
+    <title>Let's Barf Words</title>
     <link rel="stylesheet" media="all" href="css/eg.photon.demo.css" />
     <script type="text/javascript" src="Photon/3rdparty/swfobject.js"></script>
     <script type="text/javascript" src="Photon/3rdparty/web_socket.js"></script>
@@ -17,7 +17,6 @@
     </script>
 </head>
 <body>
-    <h1>Spewphemism!</h1>
     <div id="fb-root"></div>
     <script>
         if (DemoFbAppId) {
@@ -47,7 +46,9 @@
     <div>
         <div class="fb-login-button" data-show-faces="true" data-width="400" data-max-rows="1" data-registration-url="" ></div>
     </div>
-    <div>
+
+    <div id="Login">
+        <h1>Let's Barf Words!</h1>
         <form class="spew" id="mainfrm">
             Name:<br>
             <input type="text" id="name" maxlength="12"/>
@@ -58,6 +59,28 @@
             <input type="submit" value="Submit" />
         </form>
     </div>
+
+    <div id="WaitForPlayers" style="display: none;">
+        You're in! Wait until other players have joined.
+        <p>
+        <input id="startGame" type="button" value="Everyone's In" />
+    </div>
+
+    <div id="ClueScreen" style="display: none">
+       <h2 id="Category" />
+       <h2 id="Target" />
+       
+       <div id="SubmitClue" style="padding-top: 30px;padding-bottom: 30px">
+         <h2>Enter your clue:</h2>
+         <input id="clueField" type="text" maxlength="40"/>
+       </div>
+       
+       <input id="btn" type="button" value="SUBMIT" style="margin-top: 40px;margin-bottom:40px;"/>
+       
+       <h3>Your clue cannot contain these words:</h3>
+       <div id="Disallowed" style="border: 1px solid black;padding: 3px; font-size: 1.5em;" />
+    </div>
+
     <p>
     <div>
         <p id="status" />

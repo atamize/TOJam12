@@ -20,6 +20,23 @@ var ConnectOnStart = false;
 
 var LatestRoom;
 
+var SendTarget           = 8;
+var InvalidClue          = 9;
+var ValidClue            = 10;
+var NextClue             = 11;
+var Tally                = 12;
+var UpdateWords          = 13;
+
+var disallowedWords;
+
+function SetVisible(id, enable) {
+    var elem = document.getElementById(id);
+    if (enable)
+        elem.style.display = '';
+    else
+        elem.style.display = 'none';
+}
+
 var DemoLoadBalancing = (function (_super) {
     __extends(DemoLoadBalancing, _super);
     function DemoLoadBalancing() {
@@ -51,13 +68,8 @@ var DemoLoadBalancing = (function (_super) {
     };
     DemoLoadBalancing.prototype.onEvent = function (code, content, actorNr) {
         switch (code) {
-            case 1:
-                var mess = content.message;
-                var sender = content.senderName;
-                if (actorNr)
-                    this.output(sender + ": " + mess, this.myRoomActors()[actorNr].getCustomProperty("color"));
-                else
-                    this.output(sender + ": " + mess);
+            case SendTarget:
+                this.receiveTarget(content);
                 break;
             default:
         }
@@ -81,6 +93,16 @@ var DemoLoadBalancing = (function (_super) {
         return res;
     };
     DemoLoadBalancing.prototype.updateRoomInfo = function () {
+        var btn = document.getElementById("startGame");
+
+        if (this.myActor().actorNr == 2) {
+            if (this.myRoomActorCount() > 3) {
+                btn.disabled = false;
+            } else {
+                btn.disabled = true;
+            }
+        }
+
         /*
         var stateText = document.getElementById("roominfo");
         stateText.innerHTML = "room: " + this.myRoom().name + " [" + this.objToStr(this.myRoom()._customProperties) + "]";
@@ -138,6 +160,14 @@ var DemoLoadBalancing = (function (_super) {
     };
     DemoLoadBalancing.prototype.onJoinRoom = function () {
         this.output("Game " + this.myRoom().name + " joined");
+
+        SetVisible("Login", false);
+        SetVisible("WaitForPlayers", true);
+        if (this.myActor().actorNr == 2) { 
+            SetVisible("startGame", true);
+        } else {
+            SetVisible("startGame", false);
+        }
         this.updateRoomInfo();
     };
     DemoLoadBalancing.prototype.onActorJoin = function (actor) {
@@ -161,24 +191,29 @@ var DemoLoadBalancing = (function (_super) {
         var _this = this;
         this.logger.info("Setting up UI.");
         var input = document.getElementById("name");
-        input.value = 'Rando';
+        input.value = 'Rando' + Math.floor((Math.random() * 10000) + 1);
         input.focus();
 
         var form = document.getElementById("mainfrm");
         form.onsubmit = function () {
             if (_this.isInLobby()) {
-                _this.myActor().setName(input.value);
-
-                var roomCode = document.getElementById("roomCode");
-                if (roomCode.value.length > 0) {
-                    _this.joinRoom(roomCode.value);
-
-                    //_this.sendMessage(input.value);
-                    _this.output("Enter a valid room code");
-                } else {
-                    roomCode.focus();
+                if (input.value.length < 1)
+                {
+                    _this.output("Enter a name, doofus");
                 }
-                
+                else
+                {
+                    _this.myActor().setName(input.value);
+                    var roomCode = document.getElementById("roomCode");
+                    if (roomCode.value.length > 0) {
+                        _this.joinRoom(roomCode.value);
+
+                        //_this.sendMessage(input.value);
+                        _this.output("Enter a valid room code");
+                    } else {
+                        roomCode.focus();
+                    }
+                }
             }
             else {
                 _this.output("Reload page to connect to Master");
@@ -282,6 +317,19 @@ var DemoLoadBalancing = (function (_super) {
         btn = document.getElementById("leavebtn");
         btn.disabled = !(this.isJoinedToRoom());
         */
+    };
+
+    DemoLoadBalancing.prototype.receiveTarget = function (message) {
+        var split = content.split(";");
+		var target = split[0];
+		var category = split[1];
+        disallowedWords = split[2];
+        var guesser = split[3];
+        var guesserId = parseInt(split[4]);
+
+        document.getElementById("Category").text = "Category: " + category;
+        document.getElementById("Target").text = "Target: " + target;
+        document.getElementById("Disallowed").innerHTML = disallowedWords;
     };
     return DemoLoadBalancing;
 }(Photon.LoadBalancing.LoadBalancingClient));

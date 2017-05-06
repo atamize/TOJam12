@@ -171,7 +171,7 @@ public class GameManager : MonoBehaviour
         m_currentTarget.SetPattern();
 
         string guesser = m_playerList[m_guesserIndex].Name;
-        string content = m_currentTarget.name + ";" + m_currentTarget.category + ";" + m_currentTarget.FormatDisallowedWords() + ";" + guesser;
+        string content = m_currentTarget.name + ";" + m_currentTarget.category + ";" + m_currentTarget.FormatDisallowedWords() + ";" + guesser + "; " + m_playerList[m_guesserIndex].Id;
 
         Main.RaiseEvent(SpewEventCode.SendTarget, content);
 
