@@ -20,6 +20,14 @@ var ConnectOnStart = false;
 
 var LatestRoom;
 
+var JoinRoom             = 0;
+var StartGame            = 2;
+var SubmitClue           = 3;
+var SubmitGuess          = 4;
+var BooPlayer            = 5;
+var RestartGame          = 6;
+var NewPlayers           = 7;
+
 var SendTarget           = 8;
 var InvalidClue          = 9;
 var ValidClue            = 10;
@@ -67,13 +75,17 @@ var DemoLoadBalancing = (function (_super) {
         this.output("Error " + errorCode + ": " + errorMsg);
     };
     DemoLoadBalancing.prototype.onEvent = function (code, content, actorNr) {
+        this.logger.debug("onEvent", code, "content:", content, "actor:", actorNr);
+        this.output("onEvent code: " + code);
+        this.output("onEvent actorNr: " + actorNr);
+        this.output("onEvent content: " + content);
+
         switch (code) {
             case SendTarget:
                 this.receiveTarget(content);
                 break;
             default:
         }
-        this.logger.debug("onEvent", code, "content:", content, "actor:", actorNr);
     };
     DemoLoadBalancing.prototype.onStateChange = function (state) {
         // "namespace" import for static members shorter acceess
@@ -178,12 +190,12 @@ var DemoLoadBalancing = (function (_super) {
         this.output("actor " + actor.actorNr + " left");
         this.updateRoomInfo();
     };
-    DemoLoadBalancing.prototype.sendMessage = function (message) {
-        try {
-            this.raiseEvent(1, { message: message, senderName: "user" + this.myActor().actorNr });
+    DemoLoadBalancing.prototype.sendMessage = function (code, message) {
+        try  {
+			var options = { targetActors:[1] };
+			this.raiseEvent(code, message, options);
             this.output('me[' + this.myActor().actorNr + ']: ' + message, this.myActor().getCustomProperty("color"));
-        }
-        catch (err) {
+        } catch (err) {
             this.output("error: " + err.message);
         }
     };
@@ -207,11 +219,9 @@ var DemoLoadBalancing = (function (_super) {
                     var roomCode = document.getElementById("roomCode");
                     if (roomCode.value.length > 0) {
                         _this.joinRoom(roomCode.value);
-
-                        //_this.sendMessage(input.value);
-                        _this.output("Enter a valid room code");
                     } else {
                         roomCode.focus();
+                        _this.output("Enter a valid room code");
                     }
                 }
             }
@@ -219,6 +229,11 @@ var DemoLoadBalancing = (function (_super) {
                 _this.output("Reload page to connect to Master");
             }
             return false;
+        };
+
+        var startGameBtn = document.getElementById("startGame");
+        startGameBtn.onclick = function () {
+            _this.sendMessage(StartGame);
         };
         /*
         var btnJoin = document.getElementById("joingamebtn");
@@ -293,6 +308,7 @@ var DemoLoadBalancing = (function (_super) {
     DemoLoadBalancing.prototype.output = function (str, color) {
         var log = document.getElementById("status");
         log.innerHTML = str;
+        console.log("BARF: " + str);
         /*
         var log = document.getElementById("theDialogue");
         var escaped = str.replace(/&/, "&amp;").replace(/</, "&lt;").
@@ -320,16 +336,24 @@ var DemoLoadBalancing = (function (_super) {
     };
 
     DemoLoadBalancing.prototype.receiveTarget = function (message) {
-        var split = content.split(";");
+        var split = message.split(";");
 		var target = split[0];
 		var category = split[1];
         disallowedWords = split[2];
         var guesser = split[3];
         var guesserId = parseInt(split[4]);
 
-        document.getElementById("Category").text = "Category: " + category;
-        document.getElementById("Target").text = "Target: " + target;
-        document.getElementById("Disallowed").innerHTML = disallowedWords;
+        //this.output("guesser Id: " + guesserId);
+        //this.output("My actor num: " + this.myActor().actorNr);
+        SetVisible("WaitForPlayers", false);
+        if (guesserId == this.myActor().actorNr) {
+            SetVisible("GuesserWait", true);
+        } else {
+            document.getElementById("Category").innerHTML = "Category: " + category;
+            document.getElementById("Target").innerHTML = "Target: <b>" + target + "</b>";
+            document.getElementById("Disallowed").innerHTML = disallowedWords;
+            SetVisible("ClueScreen", true);
+        }
     };
     return DemoLoadBalancing;
 }(Photon.LoadBalancing.LoadBalancingClient));

@@ -71,11 +71,13 @@ form.photon {
             margin-bottom: 0;
         }
 
+/*
 .canvasHolder {
     float: left;
     margin-bottom: 2em;
     margin-right: 2em;
 }
+*/
 
 #theDialogue {
     background-color: #000;

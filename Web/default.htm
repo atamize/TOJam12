@@ -66,16 +66,18 @@
         <input id="startGame" type="button" value="Everyone's In" />
     </div>
 
+    <div id="GuesserWait" style="display: none">
+        <h2>You're guessing this round. Sit back and wait until the other players have entered their clues!</h2>
+    </div>
+
     <div id="ClueScreen" style="display: none">
        <h2 id="Category" />
-       <h2 id="Target" />
+       <h2 id="Target" style="margin-bottom: 40px"/>
        
-       <div id="SubmitClue" style="padding-top: 30px;padding-bottom: 30px">
-         <h2>Enter your clue:</h2>
-         <input id="clueField" type="text" maxlength="40"/>
-       </div>
+       <h2 style="margin-top: 30px">Enter your clue:</h2>
+        <input id="clueField" type="text" maxlength="40" style="margin-bottom: 30px"/>
        
-       <input id="btn" type="button" value="SUBMIT" style="margin-top: 40px;margin-bottom:40px;"/>
+       <input id="submitClueButton" type="button" value="SUBMIT" style="margin-top: 40px;margin-bottom:40px;"/>
        
        <h3>Your clue cannot contain these words:</h3>
        <div id="Disallowed" style="border: 1px solid black;padding: 3px; font-size: 1.5em;" />
