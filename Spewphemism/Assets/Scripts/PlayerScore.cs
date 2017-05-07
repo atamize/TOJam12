@@ -9,6 +9,7 @@ public class PlayerScore : MonoBehaviour
     public TextMeshProUGUI clueLabel;
     public TextMeshProUGUI roundScoreLabel;
     public TextMeshProUGUI totalScoreLabel;
+    public UnityEngine.UI.Image icon;
     
     public void SetScore(PlayerInfo player, string clue)
     {
@@ -16,5 +17,6 @@ public class PlayerScore : MonoBehaviour
         clueLabel.text = clue;
         roundScoreLabel.text = player.RoundScore.ToString();
         totalScoreLabel.text = player.TotalScore.ToString();
+        icon.sprite = player.sprite.sprite;
     }
 }

@@ -36,6 +36,7 @@ public class Main : PunBehaviour
     public string targetsURL = "http://www.baconshark.ca/data/targets.csv";
     public TextAsset targetsCSV;
 
+    public GameObject pauseScreen;
     public GameObject startButton;
     public TextMeshProUGUI connectingLabel;
     public TextMeshProUGUI roomCodeLabel;
@@ -67,6 +68,36 @@ public class Main : PunBehaviour
                       1000000, 8000000).ToString();
         string result = url + "?p=" + r;
         return result;
+    }
+
+    void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            if (pauseScreen.activeInHierarchy)
+            {
+                pauseScreen.SetActive(false);
+            }
+            else if (!gameManager.IsInState(GameManager.State.Intro))
+            {
+                pauseScreen.SetActive(true);
+            }
+        }
+    }
+
+    public void Restart()
+    {
+        pauseScreen.SetActive(false);
+        foreach (PlayerEntry entry in playerEntries)
+        {
+            entry.gameObject.SetActive(false);
+        }
+        gameManager.SetState(GameManager.State.Intro);
+    }
+
+    public void Unpause()
+    {
+        pauseScreen.SetActive(false);
     }
 
     private IEnumerator LoadTargets()
@@ -153,6 +184,7 @@ public class Main : PunBehaviour
 
 
         // after timeout: re-join "old" room (if one is known)
+        /*
         if (!string.IsNullOrEmpty(this.previousRoom))
         {
             Debug.Log("ReJoining previous room: " + this.previousRoom);
@@ -160,6 +192,7 @@ public class Main : PunBehaviour
             this.previousRoom = null;       // we only will try to re-join once. if this fails, we will get into a random/new room
         }
         else
+        */
         {
             StringBuilder sb = new StringBuilder(ROOM_CODE_LENGTH);
             RoomOptions options = new RoomOptions();
@@ -216,11 +249,7 @@ public class Main : PunBehaviour
         connectingLabel.text = msg;
         Debug.Log(msg);
 
-        foreach (PlayerEntry entry in playerEntries)
-        {
-            entry.gameObject.SetActive(false);
-        }
-        gameManager.SetState(GameManager.State.Intro);
+        Restart();
     }
 
     public override void OnPhotonPlayerConnected(PhotonPlayer newPlayer)
@@ -254,11 +283,7 @@ public class Main : PunBehaviour
         {
             if (!gameManager.IsInState(GameManager.State.Login))
             {
-                foreach (PlayerEntry entry in playerEntries)
-                {
-                    entry.gameObject.SetActive(false);
-                }
-                gameManager.SetState(GameManager.State.Intro);
+                Restart();
                 connectingLabel.text = otherPlayer.NickName + " disconnected";
             }
         }

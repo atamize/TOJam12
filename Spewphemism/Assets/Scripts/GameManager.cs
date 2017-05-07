@@ -52,6 +52,11 @@ public class GameManager : MonoBehaviour
     public TextMeshProUGUI guesserLabel;
     public TextMeshProUGUI guessLabel;
 
+    public UnityEngine.UI.Image clueGuesserImage;
+    public UnityEngine.UI.Image guesserImage;
+    public UnityEngine.UI.Image clueGiverImage;
+    public UnityEngine.UI.Image winnerImage;
+
     public TextMeshProUGUI winnerLabel;
 
     public GameObject incorrectObject;
@@ -196,6 +201,7 @@ public class GameManager : MonoBehaviour
 
         string guesser = m_playerList[m_guesserIndex].Name;
         string content = m_currentTarget.name + ";" + m_currentTarget.category + ";" + m_currentTarget.FormatDisallowedWords() + ";" + guesser + "; " + m_playerList[m_guesserIndex].Id;
+        clueGuesserImage.sprite = m_playerList[m_guesserIndex].sprite.sprite;
 
         Main.RaiseEvent(SpewEventCode.SendTarget, content);
 
@@ -288,6 +294,7 @@ public class GameManager : MonoBehaviour
         guessState.SetActive(true);
         clueState.SetActive(false);
         m_clueIndex = 0;
+        guesserImage.sprite = m_playerList[m_guesserIndex].sprite.sprite;
 
         // Add players who didn't get to enter a valid clue
         foreach (var p in m_playerList)
@@ -327,6 +334,7 @@ public class GameManager : MonoBehaviour
         {
             Clue clue = m_clues[m_clueIndex];
             clueGiverLabel.text = string.Format("{0} CLUE:", Possessify(clue.player.Name));
+            clueGiverImage.sprite = clue.player.sprite.sprite;
 
             if (string.IsNullOrEmpty(clue.clue))
                 clue.clue = "??????";
@@ -391,7 +399,7 @@ public class GameManager : MonoBehaviour
         for (int i = 0; i < guess.Length; ++i)
         {
             sb.Append(guess[i]);
-            guessLabel.text = sb.ToString();
+            guessLabel.text = sb.ToString().ToUpper();
             yield return new WaitForSeconds(0.1f);
         }
 
@@ -491,10 +499,13 @@ public class GameManager : MonoBehaviour
         if (sorted.First().TotalScore > sorted.ElementAt(1).TotalScore)
         {
             winnerLabel.text = sorted.First().Name;
+            winnerImage.gameObject.SetActive(true);
+            winnerImage.sprite = sorted.First().sprite.sprite;
         }
         else
         {
             winnerLabel.text = "YOU";
+            winnerImage.gameObject.SetActive(false);
         }
 
         finalState.SetActive(true);
