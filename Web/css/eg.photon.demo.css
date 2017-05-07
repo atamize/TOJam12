@@ -18,6 +18,9 @@ input {
     text-transform: uppercase;
 }
 
+input.rad {
+  width: 1em;
+}
      form.spew > fieldset {
         border: 1px solid #ccc;
         padding: .5em;

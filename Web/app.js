@@ -84,6 +84,7 @@ var DemoLoadBalancing = (function (_super) {
 
         switch (code) {
             case SendTarget:
+                SetVisible("booOptions", false);
                 this.receiveTarget(content);
                 break;
 
@@ -119,6 +120,7 @@ var DemoLoadBalancing = (function (_super) {
                     var split = content.split(";");
                     SetVisible("errorMsg", false);
                     SetVisible("disPart", false);
+                    SetVisible("booOptions", false);
                     document.getElementById("Category").innerHTML = "Category: " + split[0];
                     document.getElementById("Target").innerHTML = "Clue: <b>" + split[1] + "</b>";
                     document.getElementById("fieldDesc").innerHTML = "Enter your guess:";
@@ -128,8 +130,33 @@ var DemoLoadBalancing = (function (_super) {
 
             case Tally:
                 SetVisible("ClueScreen", false);
-                document.getElementById("wait").innerHTML = "Look at the scoreboard and wait for next round";
                 SetVisible("WaitScreen", true);
+
+                if (isGuessing) {
+                    document.getElementById("wait").innerHTML = "Look at the scoreboard and wait for next round";
+                } else {
+                    document.getElementById("wait").innerHTML = "Think a certain clue sucks? Select it and hit the BOO button!";
+
+                    if (content && content.length > 0) {
+                        var split = content.split(";");
+                        for (var i = 0; i < split.length; ++i) {
+                            var btn = document.getElementById("radio" + i);
+                            btn.style.display = '';
+                            btn.value = i.toString();
+
+                            var lbl = document.getElementById("rad" + i);
+                            lbl.innerHTML = split[i];
+                            lbl.style.display = '';
+                        }
+
+                        for ( ; i < 5; ++i) {
+                            SetVisible("radio" + i, false);
+                            SetVisible("rad" + i, false);
+                        }
+
+                        SetVisible("booOptions", true);
+                    }
+                }
                 break;
 
             default:
@@ -245,6 +272,7 @@ var DemoLoadBalancing = (function (_super) {
             SetVisible("WaitForPlayers", false);
             SetVisible("WaitForPlayers", false);
             SetVisible("WaitScreen", true);
+            SetVisible("booOptions", false);
             document.getElementById("wait").innerHTML = "You have been disconnected. Please refresh the page to restart.";
         }
     };
@@ -313,6 +341,18 @@ var DemoLoadBalancing = (function (_super) {
                     _this.sendMessage(SubmitClue, clueField.value);
                 }
             }
+        };
+
+        var booBtn = document.getElementById("booButton");
+        booBtn.onclick = function() {
+            for (var i = 0; i < 5; ++i) {
+                var btn = document.getElementById("radio" + i);
+                if (btn.checked) {
+                    _this.sendMessage(BooPlayer, i);
+                    break;
+                }
+            }
+            SetVisible("booOptions", false);
         };
 
         /*

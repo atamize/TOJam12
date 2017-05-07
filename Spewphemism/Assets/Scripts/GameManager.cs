@@ -28,10 +28,11 @@ public class GameManager : MonoBehaviour
         Final
     }
 
-    struct Clue
+    class Clue
     {
         public PlayerInfo player;
         public string clue;
+        public int booCount;
     }
 
     public GameObject titleState;
@@ -114,6 +115,32 @@ public class GameManager : MonoBehaviour
                 if (eventCode == SpewEventCode.SubmitGuess)
                 {
                     SubmitGuess(content);
+                }
+                break;
+
+            case State.Tally:
+                if (eventCode == SpewEventCode.BooPlayer)
+                {
+                    if (!playerScores.Any(p => p.boo.activeInHierarchy))
+                    {
+                        int index = int.Parse(content);
+                        m_clues[index].booCount++;
+
+                        int count = m_clues.Count;
+                        if ((count == 3 && m_clues[index].booCount == 2) || m_clues[index].booCount >= count / 2)
+                        {
+                            foreach (var score in playerScores)
+                            {
+                                if (score.ID == m_clues[index].player.Id && !score.boo.activeInHierarchy)
+                                {
+                                    score.boo.SetActive(true);
+                                    m_clues[index].player.TotalScore -= m_clues[index].player.RoundScore;
+                                    score.RefreshScore();
+                                    break;
+                                }
+                            }
+                        }
+                    }
                 }
                 break;
         }
@@ -487,7 +514,13 @@ public class GameManager : MonoBehaviour
             }
         }));
 
-        Main.RaiseEvent(SpewEventCode.Tally, string.Empty);
+        StringBuilder sb = new StringBuilder();
+        for (i = 0; i < m_clues.Count; ++i)
+        {
+            sb.AppendFormat("{0};", m_clues[i].clue);
+        }
+        sb.Length--;
+        Main.RaiseEvent(SpewEventCode.Tally, sb.ToString());
     }
 
     void EnterFinal()
