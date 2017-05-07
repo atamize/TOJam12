@@ -262,7 +262,13 @@ var DemoLoadBalancing = (function (_super) {
         this.logger.info("Setting up UI.");
         var input = document.getElementById("name");
         input.value = 'Rando' + Math.floor((Math.random() * 10000) + 1);
-        input.focus();
+        
+        input.onclick = function() {
+            this.select();
+        };
+
+        var roomCode = document.getElementById("roomCode");
+        roomCode.focus();
 
         var form = document.getElementById("mainfrm");
         form.onsubmit = function () {
@@ -274,7 +280,7 @@ var DemoLoadBalancing = (function (_super) {
                 else
                 {
                     _this.myActor().setName(input.value);
-                    var roomCode = document.getElementById("roomCode");
+                    
                     if (roomCode.value.length > 0) {
                         _this.joinRoom(roomCode.value);
                     } else {

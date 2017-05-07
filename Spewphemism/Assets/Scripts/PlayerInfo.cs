@@ -1,11 +1,13 @@
 ﻿using UnityEngine;
 using System.Collections;
-
+using UnityEngine.UI;
 public class PlayerInfo
 {
     PhotonPlayer networkPlayer;
+    public Image sprite;
     int roundScore;
     int totalScore;
+    int m_id;
 
     public int RoundScore
     {
@@ -21,7 +23,9 @@ public class PlayerInfo
     public PlayerInfo(PhotonPlayer player)
 	{
         networkPlayer = player;
-	}
+        m_id = player.ID;
+
+    }
 
     public void ResetScore()
     {
@@ -36,6 +40,6 @@ public class PlayerInfo
 
     public int Id
     {
-        get { return networkPlayer.ID; }
+        get { return m_id; }
     }
 }

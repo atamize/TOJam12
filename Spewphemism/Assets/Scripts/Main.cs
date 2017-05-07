@@ -5,6 +5,7 @@ using Photon;
 using System.Text;
 using UnityEngine.UI;
 using TMPro;
+using System.Linq;
 
 public enum SpewEventCode
 {
@@ -37,6 +38,7 @@ public class Main : PunBehaviour
 
     public GameObject startButton;
     public TextMeshProUGUI connectingLabel;
+    public TextMeshProUGUI roomCodeLabel;
     public PlayerEntry[] playerEntries;
     public GameManager gameManager;
 
@@ -189,6 +191,7 @@ public class Main : PunBehaviour
     {
         Debug.Log("Joined room: " + PhotonNetwork.room.Name);
         this.previousRoom = PhotonNetwork.room.Name;
+        roomCodeLabel.text = this.previousRoom;
 
         startButton.SetActive(true);
         connectingLabel.gameObject.SetActive(false);
@@ -222,9 +225,13 @@ public class Main : PunBehaviour
 
     public override void OnPhotonPlayerConnected(PhotonPlayer newPlayer)
     {
+        List<PlayerEntry> inactive = playerEntries.Where(p => !p.gameObject.activeInHierarchy).ToList();
+        PlayerEntry entry = inactive[Random.Range(0, inactive.Count)];
+
         var info = new PlayerInfo(newPlayer);
-        playerEntries[playerList.Count].SetInfo(info);
-        playerEntries[playerList.Count].Show(true);
+        info.sprite = entry.icon;
+        entry.SetInfo(info);
+        entry.Show(true);
         playerList.Add(info);
         
         Debug.Log("New player joined: " + newPlayer.NickName);
@@ -234,7 +241,7 @@ public class Main : PunBehaviour
     {
         foreach (var entry in playerEntries)
         {
-            if (entry.Id == otherPlayer.ID)
+            if (entry.Info != null && entry.Id == otherPlayer.ID)
             {
                 entry.Show(false);
                 playerList.Remove(entry.Info);
