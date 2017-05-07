@@ -130,7 +130,7 @@ public class GameManager : MonoBehaviour
                         m_clues[index].booCount++;
 
                         int count = m_clues.Count;
-                        if ((count == 3 && m_clues[index].booCount == 2) || m_clues[index].booCount >= count / 2)
+                        if ((count == 3 && m_clues[index].booCount == 2) || (count != 3 && m_clues[index].booCount >= count / 2))
                         {
                             foreach (var score in playerScores)
                             {
@@ -193,6 +193,12 @@ public class GameManager : MonoBehaviour
                 finalState.SetActive(false);
                 titleState.SetActive(true);
                 goat.gameObject.SetActive(false);
+
+                if (timerRoutine != null)
+                {
+                    StopCoroutine(timerRoutine);
+                    timerObject.SetActive(false);
+                }
 
                 AudioManager.Instance.Play("ClueMusic");
                 break;
@@ -317,7 +323,10 @@ public class GameManager : MonoBehaviour
             if (m_state == State.Clues && m_clues.Count == m_playerList.Count - 1)
             {
                 if (timerRoutine != null)
+                {
                     StopCoroutine(timerRoutine);
+                    timerRoutine = null;
+                }
 
                 SetState(State.Guess);
             }
@@ -339,6 +348,7 @@ public class GameManager : MonoBehaviour
         if (timerRoutine != null)
         {
             StopCoroutine(timerRoutine);
+            timerRoutine = null;
         }
 
         goat.gameObject.SetActive(false);
@@ -449,6 +459,7 @@ public class GameManager : MonoBehaviour
         StringBuilder sb = new StringBuilder();
         m_waiting = true;
         StopCoroutine(timerRoutine);
+        timerRoutine = null;
 
         for (int i = 0; i < guess.Length; ++i)
         {
@@ -531,7 +542,7 @@ public class GameManager : MonoBehaviour
             playerScores[i].gameObject.SetActive(false);
         }
 
-        StartCoroutine(TimerRoutine(TALLY_TIME, () => {
+        timerRoutine = StartCoroutine(TimerRoutine(TALLY_TIME, () => {
             if (m_guesserIndex < m_playerList.Count - 1)
             {
                 m_guesserIndex++;
