@@ -63,14 +63,14 @@ public class TargetData
     public bool IsClueValid(string clue)
     {
         Debug.Log("Checking clue " + clue + " against pattern: " + regexPattern);
-        bool result = Regex.IsMatch(clue, regexPattern);
+        bool result = Regex.IsMatch(clue.ToLower(), regexPattern);
 
         return !result;
     }
     public bool IsGuessValid(string guess)
     {
         Debug.Log("Checking guess " + guess + " against pattern: " + responsePattern);
-        bool result = Regex.IsMatch(guess, responsePattern);
+        bool result = Regex.IsMatch(guess.ToLower(), responsePattern);
         return result;
     }
 

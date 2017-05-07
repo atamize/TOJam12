@@ -132,6 +132,9 @@ public class GameManager : MonoBehaviour
 
     void SetState(State state)
     {
+        if (m_state == state)
+            return;
+
         m_state = state;
         switch (state)
         {
@@ -232,7 +235,7 @@ public class GameManager : MonoBehaviour
             }
 
             Main.RaiseEvent(SpewEventCode.ValidClue, string.Empty, player.Id);
-            StartCoroutine(SendDelayedEvent(0.1f, () => Main.RaiseEvent(SpewEventCode.UpdateWords, sb.ToString())));
+            Main.RaiseEvent(SpewEventCode.UpdateWords, sb.ToString());
 
             if (m_state == State.Clues && m_clues.Count == m_playerList.Count - 1)
             {
@@ -256,6 +259,11 @@ public class GameManager : MonoBehaviour
 
     void EnterGuess()
     {
+        if (timerRoutine != null)
+        {
+            StopCoroutine(timerRoutine);
+        }
+
         guessState.SetActive(true);
         clueState.SetActive(false);
         m_clueIndex = 0;

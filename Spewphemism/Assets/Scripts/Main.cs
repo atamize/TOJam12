@@ -263,8 +263,13 @@ public class Main : PunBehaviour
         {
             options.TargetActors = new int[] { receiverId };
         }
+        else
+        {
+            options.TargetActors = null;
+        }
 
         Debug.Log("Raise event " + eventCode.ToString() + ": " + content);
+        //Debug.Log("Raise event targetActors: " + (options.TargetActors == null? "NULL" : "Has stuff"));
         if (!PhotonNetwork.RaiseEvent((byte)eventCode, content, true, options))
         {
             Debug.LogError("Event could not be sent");

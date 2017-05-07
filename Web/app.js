@@ -36,7 +36,7 @@ var Tally                = 12;
 var UpdateWords          = 13;
 var EnterGuess           = 14;
 
-var disallowedWords;
+var disallowedWords = "";
 var isGuessing = false;
 
 function SetVisible(id, enable) {
@@ -77,7 +77,7 @@ var DemoLoadBalancing = (function (_super) {
         this.output("Error " + errorCode + ": " + errorMsg);
     };
     DemoLoadBalancing.prototype.onEvent = function (code, content, actorNr) {
-        this.logger.debug("onEvent", code, "content:", content, "actor:", actorNr);
+        //this.logger.debug("onEvent", code, "content:", content, "actor:", actorNr);
         this.output("onEvent code: " + code);
         //this.output("onEvent actorNr: " + actorNr);
         this.output("onEvent content: " + content);
@@ -122,6 +122,7 @@ var DemoLoadBalancing = (function (_super) {
                     document.getElementById("Category").innerHTML = "Category: " + split[0];
                     document.getElementById("Target").innerHTML = "Clue: <b>" + split[1] + "</b>";
                     document.getElementById("fieldDesc").innerHTML = "Enter your guess:";
+                    document.getElementById("clueField").value = "";
                 }
                 break;
 
@@ -377,8 +378,8 @@ var DemoLoadBalancing = (function (_super) {
         */
     };
     DemoLoadBalancing.prototype.output = function (str, color) {
-        var log = document.getElementById("status");
-        log.innerHTML = str;
+        //var log = document.getElementById("status");
+        //log.innerHTML = str;
         console.log("BARF: " + str);
         /*
         var log = document.getElementById("theDialogue");
