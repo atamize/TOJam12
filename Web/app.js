@@ -34,8 +34,10 @@ var ValidClue            = 10;
 var NextClue             = 11;
 var Tally                = 12;
 var UpdateWords          = 13;
+var EnterGuess           = 14;
 
 var disallowedWords;
+var isGuessing = false;
 
 function SetVisible(id, enable) {
     var elem = document.getElementById(id);
@@ -77,14 +79,60 @@ var DemoLoadBalancing = (function (_super) {
     DemoLoadBalancing.prototype.onEvent = function (code, content, actorNr) {
         this.logger.debug("onEvent", code, "content:", content, "actor:", actorNr);
         this.output("onEvent code: " + code);
-        this.output("onEvent actorNr: " + actorNr);
+        //this.output("onEvent actorNr: " + actorNr);
         this.output("onEvent content: " + content);
 
         switch (code) {
             case SendTarget:
                 this.receiveTarget(content);
                 break;
+
+            case InvalidClue:
+                this.output("Invalid clue");
+                document.getElementById("clueField").value = "";
+                SetVisible("errorMsg", true);
+                break;
+
+            case ValidClue:
+                SetVisible("errorMsg", false);
+                SetVisible("ClueScreen", false);
+                SetVisible("WaitScreen", true);
+                document.getElementById("wait").innerHTML = "Success! Please wait for everyone else to enter their clues.";
+                break;
+
+            case UpdateWords:
+                document.getElementById("Disallowed").innerHTML = disallowedWords + ", " + content;
+                break;
+
+            case EnterGuess:
+                if (isGuessing) {
+                    SetVisible("WaitScreen", false);
+                } else {
+                    document.getElementById("wait").innerHTML = content + " is currently guessing.";
+                }
+                break;
+
+            case NextClue:
+                if (isGuessing) {
+                    SetVisible("WaitScreen", false);
+                    SetVisible("ClueScreen", true);
+                    var split = content.split(";");
+                    SetVisible("errorMsg", false);
+                    SetVisible("disPart", false);
+                    document.getElementById("Category").innerHTML = "Category: " + split[0];
+                    document.getElementById("Target").innerHTML = "Clue: <b>" + split[1] + "</b>";
+                    document.getElementById("fieldDesc").innerHTML = "Enter your guess:";
+                }
+                break;
+
+            case Tally:
+                SetVisible("ClueScreen", false);
+                document.getElementById("wait").innerHTML = "Look at the scoreboard and wait for next round";
+                SetVisible("WaitScreen", true);
+                break;
+
             default:
+                break;
         }
     };
     DemoLoadBalancing.prototype.onStateChange = function (state) {
@@ -235,7 +283,30 @@ var DemoLoadBalancing = (function (_super) {
         startGameBtn.onclick = function () {
             _this.sendMessage(StartGame);
         };
+
+        var submitClueBtn = document.getElementById("submitClueButton");
+        submitClueBtn.onclick = function () {
+            var clueField = document.getElementById("clueField");
+            if (clueField.value.length > 0) {
+                if (isGuessing) {
+                    _this.sendMessage(SubmitGuess, clueField.value);
+                    SetVisible("ClueScreen", false);
+                    document.getElementById("wait").innerHTML = "Your guess is being evaluated...";
+                    SetVisible("WaitScreen", true);
+                } else {
+                    _this.sendMessage(SubmitClue, clueField.value);
+                }
+            }
+        };
+
         /*
+        var submitGuessBtn = document.getElementById("submitGuessButton");
+        submitGuessBtn.onclick = function () {
+            if (submitGuessBtn.value.length > 0) {
+                _this.sendMessage(SubmitGuess, submitGuessBtn.value);
+            }
+        };
+        
         var btnJoin = document.getElementById("joingamebtn");
         btnJoin.onclick = function (ev) {
             if (_this.isInLobby()) {
@@ -347,11 +418,21 @@ var DemoLoadBalancing = (function (_super) {
         //this.output("My actor num: " + this.myActor().actorNr);
         SetVisible("WaitForPlayers", false);
         if (guesserId == this.myActor().actorNr) {
-            SetVisible("GuesserWait", true);
+            SetVisible("WaitScreen", true);
+            document.getElementById("wait").innerHTML = "You're guessing this round. Sit back and wait until the other players have entered their clues!";
+            isGuessing = true;
         } else {
+            isGuessing = false;
+            SetVisible("WaitScreen", false);
             document.getElementById("Category").innerHTML = "Category: " + category;
             document.getElementById("Target").innerHTML = "Target: <b>" + target + "</b>";
             document.getElementById("Disallowed").innerHTML = disallowedWords;
+            document.getElementById("clueField").value = "";
+
+            SetVisible("errorMsg", false);
+            SetVisible("disPart", true);        
+            document.getElementById("fieldDesc").innerHTML = "Enter your clue:";
+
             SetVisible("ClueScreen", true);
         }
     };

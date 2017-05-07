@@ -66,25 +66,37 @@
         <input id="startGame" type="button" value="Everyone's In" />
     </div>
 
-    <div id="GuesserWait" style="display: none">
-        <h2>You're guessing this round. Sit back and wait until the other players have entered their clues!</h2>
+    <div id="WaitScreen" style="display: none">
+        <h2 id="wait"/>
     </div>
 
     <div id="ClueScreen" style="display: none">
        <h2 id="Category" />
        <h2 id="Target" style="margin-bottom: 40px"/>
        
-       <h2 style="margin-top: 30px">Enter your clue:</h2>
+       <h2 id="fieldDesc" style="margin-top: 40px">Enter your clue:</h2>
         <input id="clueField" type="text" maxlength="40" style="margin-bottom: 30px"/>
-       
+       <p id="errorMsg" style="display: none; color: red">One of your words has already been submitted!</p>
        <input id="submitClueButton" type="button" value="SUBMIT" style="margin-top: 40px;margin-bottom:40px;"/>
        
-       <h3>Your clue cannot contain these words:</h3>
-       <div id="Disallowed" style="border: 1px solid black;padding: 3px; font-size: 1.5em;" />
+       <div id="disPart">
+        <h3>Your clue cannot contain these words:</h3>
+        <div id="Disallowed" style="border: 1px solid black;padding: 3px; font-size: 1.5em;" />
+       </div>
     </div>
+<!--
+    <div id="GuessScreen" style="display: none">
+       <h2 id="CategoryGuess" />
+       <h2 id="Clue" style="margin-bottom: 40px"/>
 
+       <h2 style="margin-top: 40px">Enter your guess:</h2>
+        <input id="clueField" type="text" maxlength="40" style="margin-bottom: 30px"/>
+       
+       <input id="submitGuessButton" type="button" value="SUBMIT" style="margin-top: 40px;margin-bottom:40px;"/>
+    </div>
+-->
     <p>
-    <div>
+    <div style="display: none">
         <p id="status" />
     </div>
         <!--

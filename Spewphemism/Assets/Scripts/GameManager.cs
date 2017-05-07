@@ -188,7 +188,6 @@ public class GameManager : MonoBehaviour
     {
         timerObject.SetActive(true);
         
-        int sec = seconds;
         for (int i = 0; i < seconds; ++i)
         {
             System.TimeSpan ts = System.TimeSpan.FromSeconds(seconds - i);
@@ -233,7 +232,7 @@ public class GameManager : MonoBehaviour
             }
 
             Main.RaiseEvent(SpewEventCode.ValidClue, string.Empty, player.Id);
-            Main.RaiseEvent(SpewEventCode.UpdateWords, sb.ToString());
+            StartCoroutine(SendDelayedEvent(0.1f, () => Main.RaiseEvent(SpewEventCode.UpdateWords, sb.ToString())));
 
             if (m_state == State.Clues && m_clues.Count == m_playerList.Count - 1)
             {
@@ -245,8 +244,14 @@ public class GameManager : MonoBehaviour
         }
         else
         {
-            Main.RaiseEvent(SpewEventCode.InvalidClue, string.Empty);
+            Main.RaiseEvent(SpewEventCode.InvalidClue, string.Empty, player.Id);
         }
+    }
+
+    IEnumerator SendDelayedEvent(float time, System.Action callback)
+    {
+        yield return new WaitForSeconds(time);
+        callback();
     }
 
     void EnterGuess()
@@ -272,6 +277,9 @@ public class GameManager : MonoBehaviour
         categoryLabel.text = m_currentTarget.category;
 
         NextClue();
+
+        string content = m_playerList[m_guesserIndex].Name;
+        Main.RaiseEvent(SpewEventCode.EnterGuess, content);
     }
 
     string Possessify(string str)
@@ -300,7 +308,10 @@ public class GameManager : MonoBehaviour
             guessLabel.text = string.Empty;
 
             int time = (m_clueIndex == 0 && m_guesserIndex == 0) ? GUESS_TIME * 2 : GUESS_TIME;
-            timerRoutine = StartCoroutine(TimerRoutine(GUESS_TIME, IncorrectGuess));
+            timerRoutine = StartCoroutine(TimerRoutine(time, IncorrectGuess));
+
+            string content = m_currentTarget.category + ";" + clueLabel.text;
+            Main.RaiseEvent(SpewEventCode.NextClue, content, m_playerList[m_guesserIndex].Id);
             return true;
         }
         else
@@ -339,10 +350,7 @@ public class GameManager : MonoBehaviour
         incorrectObject.SetActive(false);
         m_clueIndex++;
 
-        if (NextClue())
-        {
-            Main.RaiseEvent(SpewEventCode.NextClue, string.Empty, m_playerList[m_guesserIndex].Id);
-        }
+        NextClue();
     }
 
     IEnumerator TypeOutGuess(string guess)
@@ -441,6 +449,8 @@ public class GameManager : MonoBehaviour
                 SetState(State.Final);
             }
         }));
+
+        Main.RaiseEvent(SpewEventCode.Tally, string.Empty);
     }
 
     void EnterFinal()

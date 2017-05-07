@@ -22,7 +22,8 @@ public enum SpewEventCode
     ValidClue            = 10,
     NextClue             = 11,
     Tally                = 12,
-    UpdateWords          = 13
+    UpdateWords          = 13,
+    EnterGuess           = 14
 }
 
 
@@ -264,7 +265,10 @@ public class Main : PunBehaviour
         }
 
         Debug.Log("Raise event " + eventCode.ToString() + ": " + content);
-        PhotonNetwork.RaiseEvent((byte)eventCode, content, true, options);
+        if (!PhotonNetwork.RaiseEvent((byte)eventCode, content, true, options))
+        {
+            Debug.LogError("Event could not be sent");
+        }
     }
 
     public void OnSend()
