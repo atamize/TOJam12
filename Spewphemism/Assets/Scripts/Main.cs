@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using Photon;
 using System.Text;
 using UnityEngine.UI;
+using TMPro;
 
 public enum SpewEventCode
 {
@@ -34,6 +35,8 @@ public class Main : PunBehaviour
     public string targetsURL = "http://www.baconshark.ca/data/targets.csv";
     public TextAsset targetsCSV;
 
+    public GameObject startButton;
+    public TextMeshProUGUI connectingLabel;
     public PlayerEntry[] playerEntries;
     public GameManager gameManager;
 
@@ -120,14 +123,25 @@ public class Main : PunBehaviour
         //}
 
         PhotonNetwork.playerName = nickName;
+        //PhotonNetwork.ConnectUsingSettings(GAME_VERSION);
+
+        // this way we can force timeouts by pausing the client (in editor)
+        //PhotonHandler.StopFallbackSendAckThread();
+
+        PhotonNetwork.OnEventCall += OnEvent;
+    }
+
+    public void OnStartPressed()
+    {
         PhotonNetwork.ConnectUsingSettings(GAME_VERSION);
 
         // this way we can force timeouts by pausing the client (in editor)
         PhotonHandler.StopFallbackSendAckThread();
 
-        PhotonNetwork.OnEventCall += OnEvent;
+        startButton.SetActive(false);
+        connectingLabel.text = "Connecting...";
+        connectingLabel.gameObject.SetActive(true);
     }
-
 
     public override void OnConnectedToMaster()
     {
@@ -176,16 +190,34 @@ public class Main : PunBehaviour
         Debug.Log("Joined room: " + PhotonNetwork.room.Name);
         this.previousRoom = PhotonNetwork.room.Name;
 
+        startButton.SetActive(true);
+        connectingLabel.gameObject.SetActive(false);
+        foreach (PlayerEntry entry in playerEntries)
+        {
+            entry.gameObject.SetActive(false);
+        }
+
+        gameManager.StartGame(playerList, targets);
     }
 
     public override void OnPhotonJoinRoomFailed(object[] codeAndMsg)
     {
         this.previousRoom = null;
+        connectingLabel.text = "Failed to join room. Please try again.";
+        startButton.SetActive(true);
     }
 
     public override void OnConnectionFail(DisconnectCause cause)
     {
-        Debug.Log("Disconnected due to: " + cause + ". this.previousRoom: " + this.previousRoom);
+        string msg = "Disconnected due to: " + cause + ". this.previousRoom: " + this.previousRoom;
+        connectingLabel.text = msg;
+        Debug.Log(msg);
+
+        foreach (PlayerEntry entry in playerEntries)
+        {
+            entry.gameObject.SetActive(false);
+        }
+        gameManager.SetState(GameManager.State.Intro);
     }
 
     public override void OnPhotonPlayerConnected(PhotonPlayer newPlayer)
@@ -208,6 +240,19 @@ public class Main : PunBehaviour
                 playerList.Remove(entry.Info);
                 Debug.Log("Player " + otherPlayer.NickName + " disconnected.");
                 break;
+            }
+        }
+
+        if (PhotonNetwork.inRoom)
+        {
+            if (!gameManager.IsInState(GameManager.State.Login))
+            {
+                foreach (PlayerEntry entry in playerEntries)
+                {
+                    entry.gameObject.SetActive(false);
+                }
+                gameManager.SetState(GameManager.State.Intro);
+                connectingLabel.text = otherPlayer.NickName + " disconnected";
             }
         }
     }
@@ -280,7 +325,7 @@ public class Main : PunBehaviour
     {
         //string content = "fuckyou,shitbrain";
         //PhotonNetwork.RaiseEvent(1, content, true, RaiseEventOptions.Default);
-        gameManager.StartGame(playerList, targets);
+        //gameManager.StartGame(playerList, targets);
     }
 
 #if UNITY_EDITOR

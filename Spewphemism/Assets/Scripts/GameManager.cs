@@ -18,7 +18,7 @@ public class GameManager : MonoBehaviour
         "a", "an", "the", "i", "you", "of", "on", "in", "as", "at", "from", "out", "to", "with", "who", "what", "where", "when", "why", "how", "then", "than", "that", "which", "it", "its", "it's", "he", "she", "his", "her", "hers", "those", "them", "i'm", "be", "am", "i'll", "their", "theirs", "they", "they're"
     };
 
-    enum State
+    public enum State
     {
         Intro,
         Login,
@@ -34,6 +34,7 @@ public class GameManager : MonoBehaviour
         public string clue;
     }
 
+    public GameObject titleState;
     public GameObject loginState;
     public GameObject clueState;
     public GameObject guessState;
@@ -60,11 +61,11 @@ public class GameManager : MonoBehaviour
 
     List<PlayerInfo> m_playerList;
     List<TargetData> m_targets;
-    List<string> m_usedTargets = new List<string>();
+    List<TargetData> m_usedTargets = new List<TargetData>();
     List<Clue> m_clues = new List<Clue>();
     List<string> m_submittedClueWords = new List<string>();
 
-    State m_state = State.Login;
+    State m_state = State.Intro;
     TargetData m_currentTarget;
     int m_guesserIndex = 0;
     string ogClueInstructions;
@@ -79,9 +80,12 @@ public class GameManager : MonoBehaviour
 
     public void StartGame(List<PlayerInfo> list, List<TargetData> targets)
     {
+        titleState.SetActive(false);
+        loginState.SetActive(true);
         m_playerList = list;
         m_targets = targets;
-    }
+        SetState(State.Login);
+    }    
 
     public void ReceiveEvent(SpewEventCode eventCode, string content, PlayerInfo player)
     {
@@ -112,8 +116,9 @@ public class GameManager : MonoBehaviour
 
     void StartGame()
     {
-        if (m_usedTargets.Count == m_targets.Count)
+        if (m_targets.Count == 0)
         {
+            m_targets.AddRange(m_targets);
             m_usedTargets.Clear();
         }
 
@@ -130,7 +135,7 @@ public class GameManager : MonoBehaviour
         SetState(State.Clues);
     }
 
-    void SetState(State state)
+    public void SetState(State state)
     {
         if (m_state == state)
             return;
@@ -138,6 +143,19 @@ public class GameManager : MonoBehaviour
         m_state = state;
         switch (state)
         {
+            case State.Intro:
+                if (PhotonNetwork.connected)
+                {
+                    PhotonNetwork.Disconnect();
+                }
+                loginState.SetActive(false);
+                clueState.SetActive(false);
+                guessState.SetActive(false);
+                tallyState.SetActive(false);
+                finalState.SetActive(false);
+                titleState.SetActive(true);
+                break;
+
             case State.Clues:
                 EnterClues();
                 break;
@@ -155,6 +173,10 @@ public class GameManager : MonoBehaviour
                 break;
         }
     }
+    public bool IsInState(State state)
+    {
+        return m_state == state;
+    }
 
     void EnterClues()
     {
@@ -164,14 +186,13 @@ public class GameManager : MonoBehaviour
         m_clues.Clear();
         m_submittedClueWords.Clear();
 
-        do
-        {
-            int index = Random.Range(0, m_targets.Count);
-            m_currentTarget = m_targets[index];
-        } while (m_usedTargets.Contains(m_currentTarget.id));
-
-        m_usedTargets.Add(m_currentTarget.id);
+        int index = Random.Range(0, m_targets.Count);
+        m_currentTarget = m_targets[index];
+        m_usedTargets.Add(m_currentTarget);
         m_currentTarget.SetPattern();
+
+        m_targets[index] = m_targets.Last();
+        m_targets.RemoveAt(m_targets.Count - 1);
 
         string guesser = m_playerList[m_guesserIndex].Name;
         string content = m_currentTarget.name + ";" + m_currentTarget.category + ";" + m_currentTarget.FormatDisallowedWords() + ";" + guesser + "; " + m_playerList[m_guesserIndex].Id;
@@ -477,6 +498,8 @@ public class GameManager : MonoBehaviour
         }
 
         finalState.SetActive(true);
+
+        StartCoroutine(TimerRoutine(15, () => SetState(State.Intro)));
     }
 }
 

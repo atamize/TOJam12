@@ -238,6 +238,15 @@ var DemoLoadBalancing = (function (_super) {
     DemoLoadBalancing.prototype.onActorLeave = function (actor) {
         this.output("actor " + actor.actorNr + " left");
         this.updateRoomInfo();
+
+        if (this.isJoinedToRoom() && actor.actorNr == 1) {
+            this.disconnect();
+            SetVisible("ClueScreen", false);
+            SetVisible("WaitForPlayers", false);
+            SetVisible("WaitForPlayers", false);
+            SetVisible("WaitScreen", true);
+            document.getElementById("wait").innerHTML = "You have been disconnected. Please refresh the page to restart.";
+        }
     };
     DemoLoadBalancing.prototype.sendMessage = function (code, message) {
         try  {
