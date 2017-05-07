@@ -171,6 +171,8 @@ public class Main : PunBehaviour
         // this way we can force timeouts by pausing the client (in editor)
         PhotonHandler.StopFallbackSendAckThread();
 
+        AudioManager.Instance.Play("Vomit");
+
         startButton.SetActive(false);
         connectingLabel.text = "Connecting...";
         connectingLabel.gameObject.SetActive(true);
@@ -264,6 +266,7 @@ public class Main : PunBehaviour
         playerList.Add(info);
         
         Debug.Log("New player joined: " + newPlayer.NickName);
+        AudioManager.Instance.Play("Yay");
     }
 
     public override void OnPhotonPlayerDisconnected(PhotonPlayer otherPlayer)

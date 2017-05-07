@@ -18,6 +18,7 @@ var DemoMasterServer = this["AppInfo"] && this["AppInfo"]["MasterServer"];
 var DemoFbAppId = this["AppInfo"] && this["AppInfo"]["FbAppId"];
 var ConnectOnStart = false;
 
+var DEBUG_MODE = false;
 var LatestRoom;
 
 var JoinRoom             = 0;
@@ -221,8 +222,10 @@ var DemoLoadBalancing = (function (_super) {
         if (rooms.length > 0) {
             LatestRoom = rooms[0].name;
 
-            var menu = document.getElementById("roomCode");
-            menu.value = LatestRoom;
+            if (DEBUG_MODE) {
+                var menu = document.getElementById("roomCode");
+                menu.value = LatestRoom;
+            }
         }
         
         /*
@@ -310,7 +313,7 @@ var DemoLoadBalancing = (function (_super) {
                     _this.myActor().setName(input.value);
                     
                     if (roomCode.value.length > 0) {
-                        _this.joinRoom(roomCode.value);
+                        _this.joinRoom(roomCode.value.toUpperCase());
                     } else {
                         roomCode.focus();
                         _this.output("Enter a valid room code");
@@ -333,12 +336,12 @@ var DemoLoadBalancing = (function (_super) {
             var clueField = document.getElementById("clueField");
             if (clueField.value.length > 0) {
                 if (isGuessing) {
-                    _this.sendMessage(SubmitGuess, clueField.value);
+                    _this.sendMessage(SubmitGuess, clueField.value.toUpperCase());
                     SetVisible("ClueScreen", false);
                     document.getElementById("wait").innerHTML = "Your guess is being evaluated...";
                     SetVisible("WaitScreen", true);
                 } else {
-                    _this.sendMessage(SubmitClue, clueField.value);
+                    _this.sendMessage(SubmitClue, clueField.value.toUpperCase());
                 }
             }
         };

@@ -63,6 +63,9 @@ public class GameManager : MonoBehaviour
     public GameObject incorrectObject;
     public GameObject correctObject;
 
+    public Transform goat;
+    public Transform goatSprite;
+
     public PlayerScore[] playerScores;
 
     List<PlayerInfo> m_playerList;
@@ -81,7 +84,7 @@ public class GameManager : MonoBehaviour
 
     void Start()
 	{
-
+        AudioManager.Instance.Play("ClueMusic");
 	}
 
     public void StartGame(List<PlayerInfo> list, List<TargetData> targets)
@@ -136,6 +139,7 @@ public class GameManager : MonoBehaviour
                                     score.boo.SetActive(true);
                                     m_clues[index].player.TotalScore -= m_clues[index].player.RoundScore;
                                     score.RefreshScore();
+                                    AudioManager.Instance.Play("Boo");
                                     break;
                                 }
                             }
@@ -173,6 +177,8 @@ public class GameManager : MonoBehaviour
             return;
 
         m_state = state;
+        AudioManager.Instance.Play("Vomit");
+
         switch (state)
         {
             case State.Intro:
@@ -186,6 +192,9 @@ public class GameManager : MonoBehaviour
                 tallyState.SetActive(false);
                 finalState.SetActive(false);
                 titleState.SetActive(true);
+                goat.gameObject.SetActive(false);
+
+                AudioManager.Instance.Play("ClueMusic");
                 break;
 
             case State.Clues:
@@ -239,16 +248,30 @@ public class GameManager : MonoBehaviour
 
         int time = (m_guesserIndex == 0) ? CLUE_TIME * 2 : CLUE_TIME;
         timerRoutine = StartCoroutine(TimerRoutine(time, () => SetState(State.Guess)));
+
+        AudioManager.Instance.Play("ClueMusic");
+
+        DOTween.KillAll();
+        goat.gameObject.SetActive(true);
+        goat.position = new Vector3(-11f, -2.8f, 0f);
+        goat.DOMoveX(11f, 5f).SetLoops(-1, LoopType.Restart).SetEase(Ease.Linear);
+        goatSprite.DOLocalMoveY(.2f, 0.2f).SetRelative(true).SetLoops(-1, LoopType.Yoyo);
     }
 
     IEnumerator TimerRoutine(int seconds, System.Action callback)
     {
         timerObject.SetActive(true);
-        
+        bool canBeep = (m_state == State.Clues || m_state == State.Guess);
+
         for (int i = 0; i < seconds; ++i)
         {
             System.TimeSpan ts = System.TimeSpan.FromSeconds(seconds - i);
             timerLabel.text = string.Format("{0}:{1:00}", ts.Minutes, ts.Seconds);
+
+            if (ts.Seconds < 11 && canBeep)
+            {
+                AudioManager.Instance.Play("Beep");
+            }
             yield return new WaitForSeconds(1);
         }
 
@@ -318,6 +341,7 @@ public class GameManager : MonoBehaviour
             StopCoroutine(timerRoutine);
         }
 
+        goat.gameObject.SetActive(false);
         guessState.SetActive(true);
         clueState.SetActive(false);
         m_clueIndex = 0;
@@ -343,6 +367,8 @@ public class GameManager : MonoBehaviour
 
         string content = m_playerList[m_guesserIndex].Name;
         Main.RaiseEvent(SpewEventCode.EnterGuess, content);
+
+        AudioManager.Instance.Play("GuessMusic");
     }
 
     string Possessify(string str)
@@ -406,6 +432,7 @@ public class GameManager : MonoBehaviour
     IEnumerator IncorrectRoutine()
     {
         //incorrectObject.transform.localScale = Vector3.zero;
+        AudioManager.Instance.Play("Wrong");
         incorrectObject.SetActive(true);
         //incorrectObject.transform.DOPunchScale(Vector3.one, 0.5f);
 
@@ -427,6 +454,7 @@ public class GameManager : MonoBehaviour
         {
             sb.Append(guess[i]);
             guessLabel.text = sb.ToString().ToUpper();
+            AudioManager.Instance.Play("Type");
             yield return new WaitForSeconds(0.1f);
         }
 
@@ -434,6 +462,7 @@ public class GameManager : MonoBehaviour
 
         if (m_currentTarget.IsGuessValid(guess))
         {
+            AudioManager.Instance.Play("Yay");
             //correctObject.transform.localScale = Vector3.zero;
             correctObject.SetActive(true);
             //correctObject.transform.DOPunchScale(Vector3.one, 0.5f);
@@ -521,6 +550,8 @@ public class GameManager : MonoBehaviour
         }
         sb.Length--;
         Main.RaiseEvent(SpewEventCode.Tally, sb.ToString());
+
+        AudioManager.Instance.Play("ClueMusic");
     }
 
     void EnterFinal()
@@ -540,6 +571,8 @@ public class GameManager : MonoBehaviour
             winnerLabel.text = "YOU";
             winnerImage.gameObject.SetActive(false);
         }
+
+        AudioManager.Instance.Play("Yay");
 
         finalState.SetActive(true);
 
