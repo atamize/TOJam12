@@ -87,6 +87,7 @@ public class Main : PunBehaviour
 
     public void Restart()
     {
+        playerList.Clear();
         pauseScreen.SetActive(false);
         foreach (PlayerEntry entry in playerEntries)
         {

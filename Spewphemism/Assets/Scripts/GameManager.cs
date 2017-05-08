@@ -587,7 +587,11 @@ public class GameManager : MonoBehaviour
 
         finalState.SetActive(true);
 
-        StartCoroutine(TimerRoutine(15, () => SetState(State.Intro)));
+        StartCoroutine(TimerRoutine(15, () => {
+            SetState(State.Intro);
+            m_playerList.Clear();
+        }
+        ));
     }
 }
 
