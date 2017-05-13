@@ -1,0 +1,7 @@
+Id,Target,Category,AcceptedResponses,DisallowedWords,DisallowedRegex,MaxCharacters
+firefighter,Firefighter,Occupation,fire fighter|fireman|fire man|firewoman|fireperson,fire|fight|fyre|fite|phyre,,
+arnold,Arnold Schwarzenegger,Actor,arnold s.*w.*r.*z.*n.*g.*r|(s.*w.*r.*z.*n.*g.*r),terminator,t.*rm.*n.*[t|d].*r,
+toaster,Toaster,Thing,,toast,,
+montreal,Montreal,City,,quebec,,
+sonic,Sonic The Hedgehog,Character,sonic|sonic the hedgehog|sonic the hedghog,sonic|hedge|hog,,
+matrix,The Matrix,Movie,matrix,matrix,,
