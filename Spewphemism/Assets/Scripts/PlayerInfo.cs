@@ -8,6 +8,7 @@ public class PlayerInfo
     int roundScore;
     int totalScore;
     int m_id;
+    string nickName;
 
     public int RoundScore
     {
@@ -22,9 +23,14 @@ public class PlayerInfo
 
     public PlayerInfo(PhotonPlayer player)
 	{
+        SetPlayer(player);
+    }
+
+    public void SetPlayer(PhotonPlayer player)
+    {
         networkPlayer = player;
         m_id = player.ID;
-
+        nickName = player.NickName;
     }
 
     public void ResetScore()
@@ -35,11 +41,26 @@ public class PlayerInfo
 
     public string Name
     {
-        get { return networkPlayer.NickName; }
+        get { return nickName; }
     }
 
     public int Id
     {
         get { return m_id; }
+    }
+    
+    public bool IsInRoom()
+    {
+        if (networkPlayer != null)
+        {
+            foreach (var p in PhotonNetwork.playerList)
+            {
+                if (p.ID == networkPlayer.ID)
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 }

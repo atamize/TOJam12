@@ -8,7 +8,7 @@ var __extends = (this && this.__extends) || function (d, b) {
 var AppInfo = {
     MasterAddress: "master server address:port",
     AppId: "52ae3714-5a54-46c9-a2e9-3ccfb7796de6",
-    AppVersion: "0.1_1.83",
+    AppVersion: "0.2_1.83",
 }
 // fetching app info global variable while in global context
 var DemoWss = this["AppInfo"] && this["AppInfo"]["Wss"];
@@ -36,9 +36,59 @@ var NextClue             = 11;
 var Tally                = 12;
 var UpdateWords          = 13;
 var EnterGuess           = 14;
+var GameOver             = 15;
 
 var disallowedWords = "";
 var isGuessing = false;
+var previousPlayerName;
+var previousRoomCode = null;
+
+var AllElements = ["Login", "WaitForPlayers", "WaitScreen", "booOptions", "ClueScreen", "EndScreen"];
+
+var LoginState = {
+    elementsToOpen: ["Login"],
+    elementsToClose: ["WaitForPlayers", "WaitScreen", "booOptions", "ClueScreen", "EndScreen"]
+};
+
+var WaitForPlayersState = {
+    elementsToOpen: ["WaitForPlayers"],
+    elementsToClose: ["Login", "WaitScreen", "booOptions", "ClueScreen", "EndScreen"]
+};
+
+var ClueState = {
+    elementsToOpen: ["ClueScreen", "disPart"],
+    elementsToClose: ["Login", "WaitScreen", "booOptions", "WaitForPlayers", "errorMsg", "EndScreen"]
+};
+
+var WaitForCluesState = {
+    elementsToOpen: ["WaitScreen"],
+    elementsToClose: ["Login", "booOptions", "WaitForPlayers", "ClueScreen", "EndScreen"]
+};
+
+var GuessState = {
+    elementsToOpen: ["ClueScreen"],
+    elementsToClose: ["Login", "WaitScreen", "booOptions", "WaitForPlayers", "errorMsg", "disPart", "EndScreen"]
+};
+
+var TallyState = {
+    elementsToOpen: ["WaitScreen"],
+    elementsToClose: ["Login", "booOptions", "WaitForPlayers", "ClueScreen", "EndScreen"]
+};
+
+var EndState = {
+    elementsToOpen: ["EndScreen"],
+    elementsToClose: ["Login", "booOptions", "WaitForPlayers", "ClueScreen", "WaitScreen"]
+};
+
+EnterState = function(state) {
+    var i;
+    for (i = 0; i < state.elementsToOpen.length; ++i) {
+        SetVisible(state.elementsToOpen[i], true);
+    }
+    for (i = 0; i < state.elementsToClose.length; ++i) {
+        SetVisible(state.elementsToClose[i], false);
+    }
+};
 
 function SetVisible(id, enable) {
     var elem = document.getElementById(id);
@@ -85,13 +135,13 @@ var DemoLoadBalancing = (function (_super) {
 
         switch (code) {
             case SendTarget:
-                SetVisible("booOptions", false);
                 this.receiveTarget(content);
                 break;
 
             case InvalidClue:
                 this.output("Invalid clue");
                 document.getElementById("clueField").value = "";
+                document.getElementById("errorMsg").innerHTML = "Your clue cannot contain these words: " + content;
                 SetVisible("errorMsg", true);
                 break;
 
@@ -110,33 +160,29 @@ var DemoLoadBalancing = (function (_super) {
                 if (isGuessing) {
                     SetVisible("WaitScreen", false);
                 } else {
-                    document.getElementById("wait").innerHTML = content + " is currently guessing.";
+                    this.setWaitText(content + " is currently guessing.");
+                    EnterState(WaitForCluesState);
                 }
                 break;
 
             case NextClue:
-                if (isGuessing) {
-                    SetVisible("WaitScreen", false);
-                    SetVisible("ClueScreen", true);
-                    var split = content.split(";");
-                    SetVisible("errorMsg", false);
-                    SetVisible("disPart", false);
-                    SetVisible("booOptions", false);
-                    document.getElementById("Category").innerHTML = "Category: " + split[0];
-                    document.getElementById("Target").innerHTML = "Clue: <b>" + split[1] + "</b>";
-                    document.getElementById("fieldDesc").innerHTML = "Enter your guess:";
-                    document.getElementById("clueField").value = "";
-                }
+                isGuessing = true;
+                EnterState(GuessState);
+                var split = content.split(";");
+                document.getElementById("Category").innerHTML = "Category: " + split[0];
+                document.getElementById("Target").innerHTML = "Clue: <b>" + split[1] + "</b>";
+                document.getElementById("fieldDesc").innerHTML = "Enter your guess:";
+                document.getElementById("clueField").value = "";
                 break;
 
             case Tally:
-                SetVisible("ClueScreen", false);
-                SetVisible("WaitScreen", true);
+                EnterState(TallyState);
+                disallowedWords = "";
 
                 if (isGuessing) {
-                    document.getElementById("wait").innerHTML = "Look at the scoreboard and wait for next round";
+                   this.setWaitText("Look at the scoreboard and wait for next round");
                 } else {
-                    document.getElementById("wait").innerHTML = "Think a certain clue sucks? Select it and hit the BOO button!";
+                    this.setWaitText("Think a certain clue sucks? Select it and hit the BOO button!");
 
                     if (content && content.length > 0) {
                         var split = content.split(";");
@@ -160,19 +206,34 @@ var DemoLoadBalancing = (function (_super) {
                 }
                 break;
 
+            case GameOver:
+                EnterState(EndState);
+                break;
+
             default:
                 break;
         }
     };
+
+    DemoLoadBalancing.prototype.setWaitText = function (msg) {
+        document.getElementById("wait").innerHTML = msg;
+    };
+    
     DemoLoadBalancing.prototype.onStateChange = function (state) {
         // "namespace" import for static members shorter acceess
-        /*
         var LBC = Photon.LoadBalancing.LoadBalancingClient;
-        var stateText = document.getElementById("statetxt");
-        stateText.textContent = LBC.StateToName(state);
-        this.updateRoomButtons();
-        this.updateRoomInfo();
-        */
+        if (LBC.StateToName(state) == 'JoinedLobby') {
+            if (previousRoomCode != null && previousRoomCode.length > 0) {
+                this.myActor().setName(previousPlayerName);
+                this.joinRoom(previousRoomCode);
+            }
+            this.output("Joined lobby");
+        }
+        //var stateText = document.getElementById("statetxt");
+        //stateText.textContent = LBC.StateToName(state);
+        //this.updateRoomButtons();
+        //this.updateRoomInfo();
+        
     };
     DemoLoadBalancing.prototype.objToStr = function (x) {
         var res = "";
@@ -191,20 +252,6 @@ var DemoLoadBalancing = (function (_super) {
                 btn.disabled = true;
             }
         }
-
-        /*
-        var stateText = document.getElementById("roominfo");
-        stateText.innerHTML = "room: " + this.myRoom().name + " [" + this.objToStr(this.myRoom()._customProperties) + "]";
-        stateText.innerHTML = stateText.innerHTML + "<br>";
-        stateText.innerHTML += " actors: ";
-        stateText.innerHTML = stateText.innerHTML + "<br>";
-        for (var nr in this.myRoomActors()) {
-            var a = this.myRoomActors()[nr];
-            stateText.innerHTML += " " + nr + " " + a.name + " [" + this.objToStr(a.customProperties) + "]";
-            stateText.innerHTML = stateText.innerHTML + "<br>";
-        }
-        this.updateRoomButtons();
-        */
     };
     DemoLoadBalancing.prototype.onActorPropertiesChange = function (actor) {
         this.updateRoomInfo();
@@ -228,38 +275,24 @@ var DemoLoadBalancing = (function (_super) {
             }
         }
         
-        /*
-        var menu = document.getElementById("gamelist");
-        while (menu.firstChild) {
-            menu.removeChild(menu.firstChild);
-        }
-        var selectedIndex = 0;
-        for (var i = 0; i < rooms.length; ++i) {
-            var r = rooms[i];
-            var item = document.createElement("option");
-            item.attributes["value"] = r.name;
-            item.textContent = r.name;
-            menu.appendChild(item);
-            if (this.myRoom().name == r.name) {
-                selectedIndex = i;
-            }
-        }
-        menu.selectedIndex = selectedIndex;
-        */
         this.output("Demo: Rooms total: " + rooms.length);
         this.updateRoomButtons();
     };
     DemoLoadBalancing.prototype.onJoinRoom = function () {
         this.output("Game " + this.myRoom().name + " joined");
 
-        SetVisible("Login", false);
-        SetVisible("WaitForPlayers", true);
-        if (this.myActor().actorNr == 2) { 
-            SetVisible("startGame", true);
-        } else {
-            SetVisible("startGame", false);
+        if (previousRoomCode == null) {
+            previousRoomCode = this.myRoom().name;
+            previousPlayerName = this.myActor().name;
+
+            EnterState(WaitForPlayersState);
+            if (this.myActor().actorNr == 2) { 
+                SetVisible("startGame", true);
+            } else {
+                SetVisible("startGame", false);
+            }
+            this.updateRoomInfo();
         }
-        this.updateRoomInfo();
     };
     DemoLoadBalancing.prototype.onActorJoin = function (actor) {
         this.output("actor " + actor.actorNr + " joined");
@@ -276,6 +309,7 @@ var DemoLoadBalancing = (function (_super) {
             SetVisible("WaitForPlayers", false);
             SetVisible("WaitScreen", true);
             SetVisible("booOptions", false);
+            SetVisible("EndScreen", false);
             document.getElementById("wait").innerHTML = "You have been disconnected. Please refresh the page to restart.";
         }
     };
@@ -310,7 +344,7 @@ var DemoLoadBalancing = (function (_super) {
                 }
                 else
                 {
-                    _this.myActor().setName(input.value);
+                    _this.myActor().setName(input.value.toUpperCase());
                     
                     if (roomCode.value.length > 0) {
                         _this.joinRoom(roomCode.value.toUpperCase());
@@ -358,86 +392,20 @@ var DemoLoadBalancing = (function (_super) {
             SetVisible("booOptions", false);
         };
 
-        /*
-        var submitGuessBtn = document.getElementById("submitGuessButton");
-        submitGuessBtn.onclick = function () {
-            if (submitGuessBtn.value.length > 0) {
-                _this.sendMessage(SubmitGuess, submitGuessBtn.value);
-            }
+        var newPlayers = document.getElementById("newGame");
+        newPlayers.onclick = function() {
+            _this.sendMessage(NewPlayers);
         };
-        
-        var btnJoin = document.getElementById("joingamebtn");
-        btnJoin.onclick = function (ev) {
-            if (_this.isInLobby()) {
-                var menu = document.getElementById("gamelist");
-                var gameId = menu.children[menu.selectedIndex].textContent;
-                _this.output(gameId);
-                _this.joinRoom(gameId);
-            }
-            else {
-                _this.output("Reload page to connect to Master");
-            }
-            return false;
+
+        var restartGame = document.getElementById("samePlayers");
+        restartGame.onclick = function() {
+            _this.sendMessage(RestartGame);
         };
-        var btnJoin = document.getElementById("joinrandomgamebtn");
-        btnJoin.onclick = function (ev) {
-            if (_this.isInLobby()) {
-                _this.output("Random Game...");
-                _this.joinRandomRoom();
-            }
-            else {
-                _this.output("Reload page to connect to Master");
-            }
-            return false;
-        };
-        var btnNew = document.getElementById("newgamebtn");
-        btnNew.onclick = function (ev) {
-            if (_this.isInLobby()) {
-                var name = document.getElementById("newgamename");
-                _this.output("New Game");
-                _this.createRoom(name.value.length > 0 ? name.value : undefined);
-            }
-            else {
-                _this.output("Reload page to connect to Master");
-            }
-            return false;
-        };
-        var form = document.getElementById("mainfrm");
-        form.onsubmit = function () {
-            if (_this.isJoinedToRoom()) {
-                var input = document.getElementById("input");
-                _this.sendMessage(input.value);
-                input.value = '';
-                input.focus();
-            }
-            else {
-                if (_this.isInLobby()) {
-                    _this.output("Press Join or New Game to connect to Game");
-                }
-                else {
-                    _this.output("Reload page to connect to Master");
-                }
-            }
-            return false;
-        };
-        var btn = document.getElementById("leavebtn");
-        btn.onclick = function (ev) {
-            _this.leaveRoom();
-            return false;
-        };
-        btn = document.getElementById("colorbtn");
-        btn.onclick = function (ev) {
-            var ind = Math.floor(Math.random() * _this.USERCOLORS.length);
-            var color = _this.USERCOLORS[ind];
-            _this.myActor().setCustomProperty("color", color);
-            _this.sendMessage("... changed his / her color!");
-        };
-        this.updateRoomButtons();
-        */
     };
     DemoLoadBalancing.prototype.output = function (str, color) {
-        //var log = document.getElementById("status");
-        //log.innerHTML = str;
+        var log = document.getElementById("status");
+        log.innerHTML = str;
+        log.scrollTop = log.scrollHeight;
         console.log("BARF: " + str);
         /*
         var log = document.getElementById("theDialogue");
@@ -451,54 +419,72 @@ var DemoLoadBalancing = (function (_super) {
         */
     };
     DemoLoadBalancing.prototype.updateRoomButtons = function () {
-        /*
-        var btn;
-        btn = document.getElementById("newgamebtn");
-        btn.disabled = !(this.isInLobby() && !this.isJoinedToRoom());
-        var canJoin = this.isInLobby() && !this.isJoinedToRoom() && this.availableRooms().length > 0;
-        btn = document.getElementById("joingamebtn");
-        btn.disabled = !canJoin;
-        btn = document.getElementById("joinrandomgamebtn");
-        btn.disabled = !canJoin;
-        btn = document.getElementById("leavebtn");
-        btn.disabled = !(this.isJoinedToRoom());
-        */
+
     };
 
     DemoLoadBalancing.prototype.receiveTarget = function (message) {
         var split = message.split(";");
 		var target = split[0];
 		var category = split[1];
-        disallowedWords = split[2];
+
+        if (disallowedWords == null || disallowedWords == "") {
+            disallowedWords = split[2];
+        }
+
         var guesser = split[3];
         var guesserId = parseInt(split[4]);
 
         //this.output("guesser Id: " + guesserId);
         //this.output("My actor num: " + this.myActor().actorNr);
-        SetVisible("WaitForPlayers", false);
         if (guesserId == this.myActor().actorNr) {
-            SetVisible("WaitScreen", true);
-            document.getElementById("wait").innerHTML = "You're guessing this round. Sit back and wait until the other players have entered their clues!";
+            EnterState(WaitForCluesState);
+            this.setWaitText("You're guessing this round. Sit back and wait until the other players have entered their clues!");
             isGuessing = true;
         } else {
             isGuessing = false;
-            SetVisible("WaitScreen", false);
+            EnterState(ClueState);
             document.getElementById("Category").innerHTML = "Category: " + category;
             document.getElementById("Target").innerHTML = "Target: <b>" + target + "</b>";
             document.getElementById("Disallowed").innerHTML = disallowedWords;
-            document.getElementById("clueField").value = "";
-
-            SetVisible("errorMsg", false);
-            SetVisible("disPart", true);        
+            document.getElementById("clueField").value = "";      
             document.getElementById("fieldDesc").innerHTML = "Enter your clue:";
-
-            SetVisible("ClueScreen", true);
         }
     };
     return DemoLoadBalancing;
 }(Photon.LoadBalancing.LoadBalancingClient));
+
 var demo;
+
 window.onload = function () {
     demo = new DemoLoadBalancing();
     demo.start();
 };
+
+var hidden, visibilityChange; 
+if (typeof document.hidden !== "undefined") { // Opera 12.10 and Firefox 18 and later support 
+  hidden = "hidden";
+  visibilityChange = "visibilitychange";
+} else if (typeof document.msHidden !== "undefined") {
+  hidden = "msHidden";
+  visibilityChange = "msvisibilitychange";
+} else if (typeof document.webkitHidden !== "undefined") {
+  hidden = "webkitHidden";
+  visibilityChange = "webkitvisibilitychange";
+}
+
+function handleVisibilityChange() {
+  if (document[hidden]) {
+  } else {
+    if (!demo.isInLobby()) {
+        demo.connect();
+    }
+  }
+}
+
+// Warn if the browser doesn't support addEventListener or the Page Visibility API
+if (typeof document.addEventListener === "undefined" || typeof document[hidden] === "undefined") {
+  alert("This game requires a browser, such as Google Chrome or Firefox, that supports the Page Visibility API.");
+} else {
+  // Handle page visibility change   
+  document.addEventListener(visibilityChange, handleVisibilityChange, false);
+}
