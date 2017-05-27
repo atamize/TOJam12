@@ -67,6 +67,12 @@ public class TargetData
 
         return !result;
     }
+
+    public MatchCollection ClueMatches(string clue)
+    {
+        return Regex.Matches(clue.ToLower(), regexPattern);
+    }
+
     public bool IsGuessValid(string guess)
     {
         Debug.Log("Checking guess " + guess + " against pattern: " + responsePattern);

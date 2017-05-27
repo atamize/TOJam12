@@ -6,6 +6,7 @@ using System.Text;
 using UnityEngine.UI;
 using TMPro;
 using System.Linq;
+using System.IO;
 
 public enum SpewEventCode
 {
@@ -25,12 +26,14 @@ public enum SpewEventCode
     NextClue             = 11,
     Tally                = 12,
     UpdateWords          = 13,
-    EnterGuess           = 14
+    EnterGuess           = 14,
+    GameOver             = 15
 }
 
 
 public class Main : PunBehaviour
 {
+    public string GAME_VERSION = "0.2";
     public string UserId;
     public string previousRoom;
     public string targetsURL = "http://www.baconshark.ca/data/targets.csv";
@@ -42,22 +45,25 @@ public class Main : PunBehaviour
     public TextMeshProUGUI roomCodeLabel;
     public PlayerEntry[] playerEntries;
     public GameManager gameManager;
+    public Button[] yesNoButtons;
+    public TextMeshProUGUI versionLabel;
 
-    const string GAME_VERSION = "0.1";
     private const string ALPHA = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     const int ROOM_CODE_LENGTH = 4;
-    const int MAX_PLAYERS_IN_ROOM = 6;
+    public const int MAX_PLAYERS_IN_ROOM = 6;
     const int MAX_CLUE_CHARACTERS = 20;
 
     List<PlayerInfo> playerList = new List<PlayerInfo>();
     List<TargetData> targets = new List<TargetData>();
+    int pauseButtonSelection = 1;
 
     void Start()
 	{
         ApplyUserIdAndConnect();
-        InitializeTargets(targetsCSV.text);
-        //StartCoroutine(LoadTargets());
-	}
+        //InitializeTargets(targetsCSV.text);
+        StartCoroutine(LoadTargets());
+        yesNoButtons[pauseButtonSelection].Select();
+    }
 
     public static string URLAntiCacheRandomizer(string url)
     {
@@ -83,6 +89,35 @@ public class Main : PunBehaviour
                 pauseScreen.SetActive(true);
             }
         }
+        else if (Input.GetKeyDown(KeyCode.Return))
+        {
+            if (pauseScreen.activeInHierarchy)
+            {
+                if (pauseButtonSelection == 1)
+                {
+                    pauseScreen.SetActive(false);
+                }
+                else if (pauseButtonSelection == 0)
+                {
+                    Restart();
+                }
+            }
+            else if (gameManager.IsInState(GameManager.State.Intro))
+            {
+                if (startButton.activeInHierarchy)
+                {
+                    OnStartPressed();
+                }
+            }
+        }
+        else if (Input.GetKeyDown(KeyCode.RightArrow) || Input.GetKeyDown(KeyCode.LeftArrow))
+        {
+            if (pauseScreen.activeInHierarchy)
+            {
+                pauseButtonSelection = (pauseButtonSelection + 1) % 2;
+                yesNoButtons[pauseButtonSelection].Select();
+            }
+        }
     }
 
     public void Restart()
@@ -94,6 +129,7 @@ public class Main : PunBehaviour
             entry.gameObject.SetActive(false);
         }
         gameManager.SetState(GameManager.State.Intro);
+        connectingLabel.gameObject.SetActive(false);
     }
 
     public void Unpause()
@@ -103,7 +139,26 @@ public class Main : PunBehaviour
 
     private IEnumerator LoadTargets()
     {
-        string url = URLAntiCacheRandomizer(targetsURL);
+        string path = Application.persistentDataPath + "/targets.csv";
+        if (File.Exists(path))
+        {
+            Debug.Log("Loading targets from: " + path);
+            InitializeTargets(File.ReadAllText(path));
+            yield break;
+        }
+
+        path = Application.persistentDataPath + "/targetsURL.txt";
+        string url = targetsURL;
+
+        if (File.Exists(path))
+        {
+            url = URLAntiCacheRandomizer(File.ReadAllText(path));
+        }
+        else
+        {
+            url = URLAntiCacheRandomizer(targetsURL);
+        }
+        
         Debug.Log("Loading url: " + url);
         WWW w = new WWW(url);
         yield return w;
@@ -111,6 +166,7 @@ public class Main : PunBehaviour
         {
             Debug.Log("Error .. " + w.error);
             // for example, often 'Error .. 404 Not Found'
+            InitializeTargets(targetsCSV.text);
         }
         else
         {
@@ -125,7 +181,12 @@ public class Main : PunBehaviour
                    longStringFromFile
                    .Split(new string[] { "\r", "\n" },
                    System.StringSplitOptions.RemoveEmptyEntries));
-        // remove comment lines...
+
+        Debug.Log("Loading targets of length " + lines.Count + ": " + lines[0]);
+
+        string[] header = lines[0].Split(',');
+        versionLabel.text = string.Format("Game Version: {0}\nData Version: {1}", GAME_VERSION, header.Last());
+
         for (int i = 1; i < lines.Count; ++i)
         {
             string[] split = lines[i].Split(',');
@@ -258,14 +319,33 @@ public class Main : PunBehaviour
     public override void OnPhotonPlayerConnected(PhotonPlayer newPlayer)
     {
         List<PlayerEntry> inactive = playerEntries.Where(p => !p.gameObject.activeInHierarchy).ToList();
-        PlayerEntry entry = inactive[Random.Range(0, inactive.Count)];
+        
+        foreach (var e in inactive)
+        {
+            if (e.Info != null && e.Info.Name == newPlayer.NickName)
+            {
+                PlayerInfo pInfo = GetPlayerInfoById(e.Info.Id);
+                if (pInfo != null)
+                {
+                    pInfo.SetPlayer(newPlayer);
+                }
 
+                e.Info.SetPlayer(newPlayer);
+                e.Show(true);
+
+                Debug.Log("Player rejoined: " + newPlayer.NickName + " with id: " + newPlayer.ID);
+                gameManager.Resume(newPlayer.ID);
+                return;
+            }
+        }
+
+        PlayerEntry entry = inactive[Random.Range(0, inactive.Count)];
         var info = new PlayerInfo(newPlayer);
         info.sprite = entry.icon;
         entry.SetInfo(info);
-        entry.Show(true);
         playerList.Add(info);
-        
+        entry.Show(true);
+
         Debug.Log("New player joined: " + newPlayer.NickName);
         AudioManager.Instance.Play("Yay");
     }
@@ -277,12 +357,12 @@ public class Main : PunBehaviour
             if (entry.Info != null && entry.Id == otherPlayer.ID)
             {
                 entry.Show(false);
-                playerList.Remove(entry.Info);
                 Debug.Log("Player " + otherPlayer.NickName + " disconnected.");
                 break;
             }
         }
 
+        /*
         if (PhotonNetwork.inRoom)
         {
             if (!gameManager.IsInState(GameManager.State.Login))
@@ -291,6 +371,7 @@ public class Main : PunBehaviour
                 connectingLabel.text = otherPlayer.NickName + " disconnected";
             }
         }
+        */
     }
 
     PlayerInfo GetPlayerInfoById(int id)

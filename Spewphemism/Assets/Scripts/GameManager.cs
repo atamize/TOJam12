@@ -10,6 +10,7 @@ using DG.Tweening;
 public class GameManager : MonoBehaviour
 {
     const int CLUE_TIME = 60;
+    const int CLUE_TIME_PER_EXTRA_PLAYER = 10;
     const int GUESS_TIME = 30;
     const int TALLY_TIME = 20;
 
@@ -66,6 +67,7 @@ public class GameManager : MonoBehaviour
     public Transform goat;
     public Transform goatSprite;
 
+    public TextMeshProUGUI targetLabel;
     public PlayerScore[] playerScores;
 
     List<PlayerInfo> m_playerList;
@@ -79,13 +81,33 @@ public class GameManager : MonoBehaviour
     int m_guesserIndex = 0;
     string ogClueInstructions;
     int m_clueIndex = 0;
-    bool m_waiting = false;
     Coroutine timerRoutine;
 
     void Start()
 	{
         AudioManager.Instance.Play("ClueMusic");
 	}
+
+#if UNITY_EDITOR
+    void Update()
+    {
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            if (m_state == State.Tally)
+            {
+                if (m_guesserIndex < m_playerList.Count - 1)
+                {
+                    m_guesserIndex++;
+                    SetState(State.Clues);
+                }
+                else
+                {
+                    SetState(State.Final);
+                }
+            }
+        }
+    }
+#endif
 
     public void StartGame(List<PlayerInfo> list, List<TargetData> targets)
     {
@@ -147,6 +169,28 @@ public class GameManager : MonoBehaviour
                     }
                 }
                 break;
+
+            case State.Final:
+                if (eventCode == SpewEventCode.RestartGame)
+                {
+                    StopTimer();
+                    loginState.SetActive(true);
+                    finalState.SetActive(false);
+
+                    foreach (var p in m_playerList)
+                    {
+                        p.ResetScore();
+                    }
+
+                    StartGame();
+                }
+                else if (eventCode == SpewEventCode.NewPlayers)
+                {
+                    StopTimer();
+                    SetState(State.Intro);
+                    m_playerList.Clear();
+                }
+                break;
         }
     }
 
@@ -194,11 +238,7 @@ public class GameManager : MonoBehaviour
                 titleState.SetActive(true);
                 goat.gameObject.SetActive(false);
 
-                if (timerRoutine != null)
-                {
-                    StopCoroutine(timerRoutine);
-                    timerObject.SetActive(false);
-                }
+                StopTimer();
 
                 AudioManager.Instance.Play("ClueMusic");
                 break;
@@ -225,8 +265,51 @@ public class GameManager : MonoBehaviour
         return m_state == state;
     }
 
+    public void Resume(int playerId)
+    {
+        switch (m_state)
+        {
+            case State.Clues:
+                Main.RaiseEvent(SpewEventCode.SendTarget, FormClueContent(), playerId);
+
+                StringBuilder sb = new StringBuilder();
+                foreach (string s in m_submittedClueWords)
+                {
+                    sb.Append(s);
+                    sb.Append(", ");
+                }
+
+                Main.RaiseEvent(SpewEventCode.UpdateWords, sb.ToString(), playerId);
+                break;
+
+            case State.Guess:
+                if (m_playerList[m_guesserIndex].Id == playerId)
+                {
+                    Clue clue = m_clues[m_clueIndex];
+                    string msg = m_currentTarget.category + ";" + clue.clue.ToUpper();
+                    Main.RaiseEvent(SpewEventCode.NextClue, msg, playerId);
+                }
+
+                string content = m_playerList[m_guesserIndex].Name;
+                Main.RaiseEvent(SpewEventCode.EnterGuess, content, playerId);
+                break;
+
+            case State.Tally:
+                SendTallyEvent(playerId);
+                break;
+        }
+    }
+
+    string FormClueContent()
+    {
+        string guesser = m_playerList[m_guesserIndex].Name;
+        string content = m_currentTarget.name + ";" + m_currentTarget.category + ";" + m_currentTarget.FormatDisallowedWords() + ";" + guesser + "; " + m_playerList[m_guesserIndex].Id;
+        return content;
+    }
+
     void EnterClues()
     {
+        StopTimer();
         tallyState.SetActive(false);
         loginState.SetActive(false);
         clueState.SetActive(true);
@@ -241,18 +324,27 @@ public class GameManager : MonoBehaviour
         m_targets[index] = m_targets.Last();
         m_targets.RemoveAt(m_targets.Count - 1);
 
-        string guesser = m_playerList[m_guesserIndex].Name;
-        string content = m_currentTarget.name + ";" + m_currentTarget.category + ";" + m_currentTarget.FormatDisallowedWords() + ";" + guesser + "; " + m_playerList[m_guesserIndex].Id;
-        clueGuesserImage.sprite = m_playerList[m_guesserIndex].sprite.sprite;
+        string content = FormClueContent();
+        var guesser = m_playerList[m_guesserIndex];
+        clueGuesserImage.sprite = guesser.sprite.sprite;
 
         Main.RaiseEvent(SpewEventCode.SendTarget, content);
 
         if (string.IsNullOrEmpty(ogClueInstructions))
             ogClueInstructions = clueInstructionsLabel.text;
 
-        clueInstructionsLabel.text = string.Format(ogClueInstructions, guesser);
+        clueInstructionsLabel.text = string.Format(ogClueInstructions, guesser.Name);
 
-        int time = (m_guesserIndex == 0) ? CLUE_TIME * 2 : CLUE_TIME;
+        int time = CLUE_TIME;
+        if (m_guesserIndex == 0)
+        {
+            time = CLUE_TIME * 2;
+        }
+        else if (m_playerList.Count > 3)
+        {
+            time = CLUE_TIME + (CLUE_TIME_PER_EXTRA_PLAYER * (Main.MAX_PLAYERS_IN_ROOM - m_playerList.Count));
+        }
+
         timerRoutine = StartCoroutine(TimerRoutine(time, () => SetState(State.Guess)));
 
         AudioManager.Instance.Play("ClueMusic");
@@ -260,8 +352,18 @@ public class GameManager : MonoBehaviour
         DOTween.KillAll();
         goat.gameObject.SetActive(true);
         goat.position = new Vector3(-11f, -2.8f, 0f);
+        goatSprite.localPosition = Vector3.zero;
         goat.DOMoveX(11f, 5f).SetLoops(-1, LoopType.Restart).SetEase(Ease.Linear);
         goatSprite.DOLocalMoveY(.2f, 0.2f).SetRelative(true).SetLoops(-1, LoopType.Yoyo);
+    }
+
+    void StopTimer()
+    {
+        if (timerRoutine != null)
+        {
+            StopCoroutine(timerRoutine);
+            timerRoutine = null;
+        }
     }
 
     IEnumerator TimerRoutine(int seconds, System.Action callback)
@@ -296,12 +398,28 @@ public class GameManager : MonoBehaviour
         List<string> tokens = new List<string>(norm.Split(' '));
         tokens.RemoveAll(s => IGNORE_WORDS.Contains(s));
 
-        bool alreadyEntered = tokens.Any(t => m_submittedClueWords.Contains(t));
+        List<string> usedTokens = m_submittedClueWords.Intersect(tokens).ToList();
+        bool alreadyEntered = usedTokens.Count > 0;
+
+        StringBuilder sb = new StringBuilder();
 
         if (alreadyEntered)
+        {
             Debug.Log("Already entered: " + content);
 
-        if (!alreadyEntered && m_currentTarget.IsClueValid(content))
+            foreach (var s in usedTokens)
+            {
+                sb.Append(s);
+                sb.Append(", ");
+            }
+            sb.Length -= 2;
+            Main.RaiseEvent(SpewEventCode.InvalidClue, sb.ToString(), player.Id);
+            return;
+        }
+
+        MatchCollection matches = m_currentTarget.ClueMatches(content);
+
+        if (matches.Count == 0)
         {
             Clue clue = new Clue();
             clue.player = player;
@@ -310,7 +428,6 @@ public class GameManager : MonoBehaviour
 
             m_submittedClueWords.AddRange(tokens);
 
-            StringBuilder sb = new StringBuilder();
             foreach (string s in m_submittedClueWords)
             {
                 sb.Append(s);
@@ -322,18 +439,21 @@ public class GameManager : MonoBehaviour
 
             if (m_state == State.Clues && m_clues.Count == m_playerList.Count - 1)
             {
-                if (timerRoutine != null)
-                {
-                    StopCoroutine(timerRoutine);
-                    timerRoutine = null;
-                }
-
+                StopTimer();
                 SetState(State.Guess);
             }
         }
         else
         {
-            Main.RaiseEvent(SpewEventCode.InvalidClue, string.Empty, player.Id);
+            foreach (var match in matches.Cast<Match>())
+            {
+                sb.Append(match.Value);
+                sb.Append(", ");
+            }
+            sb.Length -= 2;
+
+            Debug.Log("Sorry, matches: " + sb.ToString());
+            Main.RaiseEvent(SpewEventCode.InvalidClue, sb.ToString(), player.Id);
         }
     }
 
@@ -345,12 +465,7 @@ public class GameManager : MonoBehaviour
 
     void EnterGuess()
     {
-        if (timerRoutine != null)
-        {
-            StopCoroutine(timerRoutine);
-            timerRoutine = null;
-        }
-
+        StopTimer();
         goat.gameObject.SetActive(false);
         guessState.SetActive(true);
         clueState.SetActive(false);
@@ -457,9 +572,7 @@ public class GameManager : MonoBehaviour
     IEnumerator TypeOutGuess(string guess)
     {
         StringBuilder sb = new StringBuilder();
-        m_waiting = true;
-        StopCoroutine(timerRoutine);
-        timerRoutine = null;
+        StopTimer();
 
         for (int i = 0; i < guess.Length; ++i)
         {
@@ -491,8 +604,11 @@ public class GameManager : MonoBehaviour
 
     void EnterTally()
     {
+        StopTimer();
         tallyState.SetActive(true);
         guessState.SetActive(false);
+
+        targetLabel.text = string.Format("TARGET:\n<b>{0}</b>", m_currentTarget.name.ToUpper());
 
         int i = 0;
 
@@ -554,19 +670,25 @@ public class GameManager : MonoBehaviour
             }
         }));
 
-        StringBuilder sb = new StringBuilder();
-        for (i = 0; i < m_clues.Count; ++i)
-        {
-            sb.AppendFormat("{0};", m_clues[i].clue);
-        }
-        sb.Length--;
-        Main.RaiseEvent(SpewEventCode.Tally, sb.ToString());
+        SendTallyEvent();
 
         AudioManager.Instance.Play("ClueMusic");
     }
 
+    void SendTallyEvent(int playerId = -1)
+    {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < m_clues.Count; ++i)
+        {
+            sb.AppendFormat("{0};", m_clues[i].clue);
+        }
+        sb.Length--;
+        Main.RaiseEvent(SpewEventCode.Tally, sb.ToString(), playerId);
+    }
+
     void EnterFinal()
     {
+        StopTimer();
         tallyState.SetActive(false);
         timerObject.SetActive(false);
 
@@ -587,7 +709,16 @@ public class GameManager : MonoBehaviour
 
         finalState.SetActive(true);
 
-        StartCoroutine(TimerRoutine(15, () => {
+        foreach (PlayerInfo player in m_playerList.OrderBy(p => p.Id))
+        {
+            if (player.IsInRoom())
+            {
+                Main.RaiseEvent(SpewEventCode.GameOver, string.Empty, player.Id);
+                break;
+            }
+        }
+
+        timerRoutine = StartCoroutine(TimerRoutine(60, () => {
             SetState(State.Intro);
             m_playerList.Clear();
         }
